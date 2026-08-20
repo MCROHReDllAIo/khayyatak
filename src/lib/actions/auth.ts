@@ -28,6 +28,7 @@ async function setPostgresSession(profile: { id: string; email: string; role: Us
 export async function signInWithPassword(email: string, password: string) {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
+    if (!supabase) return { error: "Auth is not configured" };
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
     const profile = await getSessionProfile();
@@ -52,6 +53,7 @@ export async function signUp(
 ) {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
+    if (!supabase) return { error: "Auth is not configured" };
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -76,7 +78,7 @@ export async function signUp(
 export async function signOut() {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
-    await supabase.auth.signOut();
+    if (supabase) await supabase.auth.signOut();
   }
   if (isPostgresAuthEnabled()) {
     const cookieStore = await cookies();
@@ -88,6 +90,7 @@ export async function signOut() {
 export async function getSessionProfile() {
   if (isSupabaseConfigured()) {
     const supabase = await createClient();
+    if (!supabase) return null;
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -138,6 +141,7 @@ export async function updateTailorVerification(
   note?: string
 ) {
   const supabase = await createClient();
+  if (!supabase) return { error: "Unauthorized" };
   const {
     data: { user },
   } = await supabase.auth.getUser();

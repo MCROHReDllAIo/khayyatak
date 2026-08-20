@@ -5,6 +5,8 @@
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/env";
+import { isPostgresConfigured, pgQuery } from "@/lib/db/postgres";
+import { isAuthConfigured } from "@/lib/auth/config";
 
 export type DateRange = "today" | "7d" | "30d" | "custom";
 
@@ -32,15 +34,16 @@ function pctChange(current: number, previous: number): number {
 }
 
 async function getDb() {
-  try {
-    return await createServiceClient();
-  } catch {
-    return await createClient();
-  }
+  const service = await createServiceClient();
+  if (service) return service;
+  return createClient();
 }
 
 export async function getPlatformKPIs(range: DateRange = "30d") {
   const supabase = await getDb();
+  if (!supabase) {
+    return getPlatformKPIsFromPostgres(range);
+  }
   const since = rangeStart(range);
   const prevSince = since
     ? new Date(since.getTime() - (Date.now() - since.getTime()))
@@ -173,8 +176,160 @@ export async function getPlatformKPIs(range: DateRange = "30d") {
   ];
 }
 
+async function getPlatformKPIsFromPostgres(range: DateRange) {
+  const since = rangeStart(range);
+  const q = async (sql: string, params: unknown[] = []) => {
+    try {
+      const { rows } = await pgQuery<{ n: string | number }>(sql, params);
+      return Number(rows[0]?.n ?? 0);
+    } catch {
+      return 0;
+    }
+  };
+
+  const [customers, tailors, verified, orderCount, gmv, aiCalls, rangeOrders] = await Promise.all([
+    q(`SELECT COUNT(*)::int AS n FROM profiles WHERE role = 'customer'`),
+    q(`SELECT COUNT(*)::int AS n FROM tailors`),
+    q(`SELECT COUNT(*)::int AS n FROM tailors WHERE verified = true`),
+    q(`SELECT COUNT(*)::int AS n FROM orders`),
+    q(`SELECT COALESCE(SUM(total_price), 0) AS n FROM orders`),
+    q(`SELECT COUNT(*)::int AS n FROM ai_call_logs`),
+    since
+      ? q(`SELECT COUNT(*)::int AS n FROM orders WHERE created_at >= $1`, [since.toISOString()])
+      : Promise.resolve(0),
+  ]);
+
+  const shownOrders = since ? rangeOrders : orderCount;
+  const avgOrder = orderCount > 0 ? Math.round((gmv / orderCount) * 100) / 100 : 0;
+
+  return [
+    {
+      id: "customers",
+      label_ar: "العملاء",
+      label_en: "Customers",
+      value: String(customers),
+      trend: 0,
+      trendLabel_ar: "إجمالي مسجل",
+      trendLabel_en: "total registered",
+      href: "/admin/customers",
+    },
+    {
+      id: "tailors",
+      label_ar: "الخياطون",
+      label_en: "Tailors",
+      value: String(tailors),
+      trend: 0,
+      trendLabel_ar: "شبكة الخياطة",
+      trendLabel_en: "tailor network",
+      href: "/admin/tailors",
+    },
+    {
+      id: "orders",
+      label_ar: "الطلبات",
+      label_en: "Orders",
+      value: String(shownOrders),
+      trend: 0,
+      trendLabel_ar: "مقارنة بالفترة السابقة",
+      trendLabel_en: "vs previous period",
+      href: "/admin/orders",
+    },
+    {
+      id: "gmv",
+      label_ar: "GMV",
+      label_en: "GMV",
+      value: `${Math.round(gmv).toLocaleString()} ر.ع`,
+      trend: 0,
+      trendLabel_ar: "إجمالي قيمة الطلبات",
+      trendLabel_en: "gross order value",
+      href: "/admin/analytics",
+    },
+    {
+      id: "aov",
+      label_ar: "متوسط قيمة الطلب",
+      label_en: "Avg Order",
+      value: orderCount > 0 ? `${avgOrder} ر.ع` : "—",
+      trend: 0,
+      trendLabel_ar: "من الطلبات الفعلية",
+      trendLabel_en: "from actual orders",
+      href: "/admin/analytics",
+    },
+    {
+      id: "repeat",
+      label_ar: "معدل إعادة الطلب",
+      label_en: "Reorder Rate",
+      value: "—",
+      trend: 0,
+      trendLabel_ar: "عملاء متكررون",
+      trendLabel_en: "repeat customers",
+      href: "/admin/customers",
+    },
+    {
+      id: "ai",
+      label_ar: "استخدام AI",
+      label_en: "AI Usage",
+      value: String(aiCalls),
+      trend: 0,
+      trendLabel_ar: "من سجلات AI",
+      trendLabel_en: "from AI logs",
+      href: "/admin/ai",
+    },
+    {
+      id: "verified",
+      label_ar: "الخياطون الموثقون",
+      label_en: "Verified Tailors",
+      value: `${verified} / ${tailors}`,
+      trend: 0,
+      trendLabel_ar: "تحقق نشط",
+      trendLabel_en: "active verification",
+      href: "/admin/verification",
+    },
+  ];
+}
+
 export async function getNationalCoverage(cityFilter?: string) {
   const supabase = await getDb();
+  if (!supabase) {
+    try {
+      const { rows: cities } = await pgQuery<Record<string, unknown>>(
+        `SELECT * FROM cities ORDER BY name_ar`
+      );
+      const { rows: tailors } = await pgQuery<{ id: string; city_id: string | null; verified: boolean }>(
+        `SELECT id, city_id, verified FROM tailors`
+      );
+      const { rows: orders } = await pgQuery<{ tailor_id: string | null; total_price: number | null; customer_id: string | null }>(
+        `SELECT tailor_id, total_price, customer_id FROM orders`
+      );
+      return cities
+        .filter((c) => !cityFilter || cityFilter === "all" || c.id === cityFilter)
+        .map((city) => {
+          const cityTailors = tailors.filter((t) => t.city_id === city.id);
+          const ids = new Set(cityTailors.map((t) => t.id));
+          const cityOrders = orders.filter((o) => o.tailor_id && ids.has(o.tailor_id));
+          const gmv = cityOrders.reduce((s, o) => s + Number(o.total_price ?? 0), 0);
+          return {
+            id: city.id as string,
+            name_ar: city.name_ar as string,
+            name_en: city.name_en as string,
+            lat: Number(city.lat ?? 0),
+            lng: Number(city.lng ?? 0),
+            mapX: 50,
+            mapY: 50,
+            tailors: cityTailors.length,
+            orders: cityOrders.length,
+            customers: new Set(cityOrders.map((o) => o.customer_id)).size,
+            gmv,
+            avgOrder: cityOrders.length ? Math.round((gmv / cityOrders.length) * 10) / 10 : 0,
+            topCategory: "—",
+            topColor: "—",
+            topFabric: "—",
+            aiInsight_ar: `${city.name_ar as string}: ${cityOrders.length} طلب.`,
+            aiInsight_en: `${city.name_en as string}: ${cityOrders.length} orders.`,
+          };
+        });
+    } catch {
+      return [];
+    }
+  }
   const { data: cities } = await supabase.from("cities").select("*").order("name_ar");
   if (!cities?.length) return [];
 
@@ -235,6 +390,47 @@ export async function getNationalCoverage(cityFilter?: string) {
 
 export async function getOrderOperations() {
   const supabase = await getDb();
+  if (!supabase) {
+    try {
+      const { rows: list } = await pgQuery<{
+        id: string;
+        status: string;
+        created_at: string;
+        estimated_delivery: string | null;
+      }>(`SELECT id, status, created_at, estimated_delivery FROM orders`);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const statuses = [
+        "received",
+        "measurements_confirmed",
+        "cutting",
+        "sewing",
+        "embroidery",
+        "ready",
+        "delivered",
+      ] as const;
+      return {
+        active: list.filter((o) => o.status !== "delivered" && o.status !== "cancelled").length,
+        delayed: 0,
+        dueToday: 0,
+        ready: list.filter((o) => o.status === "ready").length,
+        delivered: list.filter((o) => o.status === "delivered").length,
+        pipeline: statuses.map((status) => ({
+          status,
+          count: list.filter((o) => o.status === status).length,
+        })),
+      };
+    } catch {
+      return {
+        active: 0,
+        delayed: 0,
+        dueToday: 0,
+        ready: 0,
+        delivered: 0,
+        pipeline: [],
+      };
+    }
+  }
   const { data: orders } = await supabase.from("orders").select("id, status, created_at, estimated_delivery");
 
   const list = orders ?? [];
@@ -286,13 +482,18 @@ export async function getSystemHealth() {
   let dbOk = false;
   try {
     const supabase = await getDb();
-    const { error } = await supabase.from("profiles").select("id", { count: "exact", head: true });
-    dbOk = !error;
+    if (supabase) {
+      const { error } = await supabase.from("profiles").select("id", { count: "exact", head: true });
+      dbOk = !error;
+    } else if (isPostgresConfigured()) {
+      await pgQuery("SELECT 1");
+      dbOk = true;
+    }
     checks.push({
       id: "db",
       name_ar: "قاعدة البيانات",
       name_en: "Database",
-      status: error ? "error" : "operational",
+      status: dbOk ? "operational" : "error",
     });
   } catch {
     checks.push({ id: "db", name_ar: "قاعدة البيانات", name_en: "Database", status: "error" });
@@ -310,18 +511,18 @@ export async function getSystemHealth() {
     status: hasAiKey ? "operational" : "warning",
   });
 
-  const hasSupabase = isSupabaseConfigured();
+  const hasAuth = isAuthConfigured();
   checks.push({
     id: "auth",
     name_ar: "المصادقة",
     name_en: "Authentication",
-    status: hasSupabase ? "operational" : "error",
+    status: hasAuth ? "operational" : "error",
   });
   checks.push({
     id: "storage",
     name_ar: "التخزين",
     name_en: "Storage",
-    status: hasSupabase ? "operational" : "error",
+    status: isSupabaseConfigured() ? "operational" : "warning",
   });
   checks.push({
     id: "notifications",
@@ -351,6 +552,18 @@ export async function getSystemHealth() {
 
 export async function getAIAnalyticsFromLogs() {
   const supabase = await getDb();
+  if (!supabase) {
+    return {
+      requests: 0,
+      designs: 0,
+      measurements: 0,
+      matches: 0,
+      conversations: 0,
+      topFeature_ar: "—",
+      topFeature_en: "—",
+      chart: [] as Array<{ feature: string; value: number }>,
+    };
+  }
   const { data: logs } = await supabase.from("ai_call_logs").select("feature, status");
 
   const list = logs ?? [];
@@ -376,6 +589,15 @@ export async function getAIAnalyticsFromLogs() {
 
 export async function getAIPerformanceFromLogs() {
   const supabase = await getDb();
+  if (!supabase) {
+    return {
+      successRate: 0,
+      avgResponseSec: 0,
+      fallbackPct: 0,
+      providerStatus: process.env.OPENROUTER_API_KEY ? "OpenRouter" : "Not configured",
+      hasData: false,
+    };
+  }
   const { data: logs } = await supabase
     .from("ai_call_logs")
     .select("status, latency_ms");
@@ -407,6 +629,34 @@ export async function getAIPerformanceFromLogs() {
 
 export async function getTailorVerificationList() {
   const supabase = await getDb();
+  if (!supabase) {
+    try {
+      const { rows } = await pgQuery<Record<string, unknown>>(
+        `SELECT t.id, t.name_ar, t.name_en, t.owner_name, t.specializations, t.verified,
+                t.verification_status, t.created_at, c.name_ar AS city_name
+         FROM tailors t
+         LEFT JOIN cities c ON c.id = t.city_id
+         ORDER BY t.created_at DESC`
+      );
+      return rows.map((t) => ({
+        id: t.id as string,
+        businessName: t.name_ar as string,
+        owner: (t.owner_name as string) ?? (t.name_en as string),
+        city: (t.city_name as string) ?? "—",
+        services: ((t.specializations as string[]) ?? []).join(" · ") || "—",
+        documents: "—",
+        submittedDate: String(t.created_at ?? "").slice(0, 10) || "—",
+        status: ((t.verification_status as string) ?? (t.verified ? "verified" : "pending")) as
+          | "pending"
+          | "verified"
+          | "rejected"
+          | "info_requested",
+        rating: 0,
+      }));
+    } catch {
+      return [];
+    }
+  }
   const { data } = await supabase
     .from("tailors")
     .select("id, name_ar, name_en, owner_name, city_id, specializations, verified, verification_status, created_at, cities(name_ar)")
@@ -431,13 +681,15 @@ export async function getTailorVerificationList() {
 
 export async function getExecutiveInsights() {
   const ops = await getOrderOperations();
-  const { data: lowStock } = await getDb()
-    .then((db) => db.from("inventory").select("id").eq("low_stock", true));
-
-  const { count: pendingVerify } = await getDb()
-    .then((db) =>
-      db.from("tailors").select("id", { count: "exact", head: true }).eq("verification_status", "pending")
-    );
+  const db = await getDb();
+  let lowStock: unknown[] = [];
+  let pendingVerify = 0;
+  if (db) {
+    const low = await db.from("inventory").select("id").eq("low_stock", true);
+    lowStock = low.data ?? [];
+    const pending = await db.from("tailors").select("id", { count: "exact", head: true }).eq("verification_status", "pending");
+    pendingVerify = pending.count ?? 0;
+  }
 
   const insights = [];
 
@@ -509,6 +761,7 @@ export async function getLivePlatformStatus() {
 export async function getCriticalAlerts() {
   const ops = await getOrderOperations();
   const supabase = await getDb();
+  if (!supabase) return [];
   const { data: lowStock } = await supabase.from("inventory").select("id").eq("low_stock", true);
   const { count: pending } = await supabase
     .from("tailors")
@@ -554,6 +807,7 @@ export async function getCriticalAlerts() {
 
 export async function getRevenueAnalytics(tab: string = "gmv", period: string = "30d") {
   const supabase = await getDb();
+  if (!supabase) return [];
   const days = period === "7d" ? 7 : period === "6m" ? 180 : period === "1y" ? 365 : 30;
   const since = new Date();
   since.setDate(since.getDate() - days);
@@ -587,6 +841,27 @@ export async function getRevenueAnalytics(tab: string = "gmv", period: string = 
 
 export async function getCustomerIntelligence() {
   const supabase = await getDb();
+  if (!supabase) {
+    try {
+      const { rows } = await pgQuery<{ n: number }>(`SELECT COUNT(*)::int AS n FROM profiles WHERE role = 'customer'`);
+      const total = Number(rows[0]?.n ?? 0);
+      return {
+        total,
+        new: 0,
+        returning: 0,
+        highValue: 0,
+        atRisk: 0,
+        likelyReorder: 0,
+        segments: [
+          { id: "new", label_ar: "جدد", label_en: "New", count: 0, pct: 0 },
+          { id: "returning", label_ar: "عائدون", label_en: "Returning", count: 0, pct: 0 },
+          { id: "high", label_ar: "قيمة عالية", label_en: "High Value", count: 0, pct: 0 },
+        ],
+      };
+    } catch {
+      return { total: 0, new: 0, returning: 0, highValue: 0, atRisk: 0, likelyReorder: 0, segments: [] };
+    }
+  }
   const { count: total } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
@@ -634,6 +909,30 @@ export async function getCustomerIntelligence() {
 
 export async function getTopTailors() {
   const supabase = await getDb();
+  if (!supabase) {
+    try {
+      const { rows } = await pgQuery<Record<string, unknown>>(
+        `SELECT t.id, t.name_ar, t.name_en, t.rating, t.review_count, c.name_ar AS city
+         FROM tailors t LEFT JOIN cities c ON c.id = t.city_id
+         ORDER BY t.rating DESC LIMIT 10`
+      );
+      return rows.map((t, i) => ({
+        rank: i + 1,
+        id: t.id as string,
+        name_ar: t.name_ar as string,
+        name_en: t.name_en as string,
+        city: (t.city as string) ?? "—",
+        orders: 0,
+        rating: Number(t.rating ?? 0),
+        revenue: 0,
+        repeatRate: 0,
+        matchSuccess: 0,
+        verified: true,
+      }));
+    } catch {
+      return [];
+    }
+  }
   const { data: tailors } = await supabase
     .from("tailors")
     .select("id, name_ar, name_en, rating, review_count, cities(name_ar)")
@@ -664,6 +963,9 @@ export async function getTopTailors() {
 
 export async function getFashionTrends() {
   const supabase = await getDb();
+  if (!supabase) {
+    return { colors: [], fabrics: [], garments: [], embroidery: [], styles: [], hasData: false };
+  }
   const { data: designs } = await supabase.from("designs").select("config");
 
   const colors: Record<string, number> = {};
@@ -695,6 +997,9 @@ export async function getFashionTrends() {
 
 export async function getInventoryIntelligence() {
   const supabase = await getDb();
+  if (!supabase) {
+    return { lowStockMerchants: 0, criticalMaterials: [], mostRequested: [], forecastShortages: [] };
+  }
   const { data: low } = await supabase.from("inventory").select("*").eq("low_stock", true);
   const { data: all } = await supabase.from("inventory").select("fabric_name_ar").limit(5);
 
@@ -712,6 +1017,9 @@ export async function getInventoryIntelligence() {
 
 export async function getMarketplacePerformance() {
   const supabase = await getDb();
+  if (!supabase) {
+    return { topCategory: "—", topCity: "—", topProduct: "—", avgOrder: 0, conversion: 0, repeatRate: 0 };
+  }
   const { data: orders } = await supabase.from("orders").select("total_price, status");
   const list = orders ?? [];
   const gmv = list.reduce((s, o) => s + Number(o.total_price ?? 0), 0);
@@ -736,6 +1044,20 @@ export async function getMarketplacePerformance() {
 
 export async function getGrowthFunnel() {
   const supabase = await getDb();
+  if (!supabase) {
+    try {
+      const { rows } = await pgQuery<{ n: number }>(`SELECT COUNT(*)::int AS n FROM profiles WHERE role = 'customer'`);
+      const reg = Number(rows[0]?.n ?? 0);
+      return [
+        { stage: "Registered", stage_ar: "مسجلون", count: reg, pct: 100 },
+        { stage: "Designed", stage_ar: "صمّموا", count: 0, pct: 0 },
+        { stage: "Ordered", stage_ar: "طلبوا", count: 0, pct: 0 },
+        { stage: "Delivered", stage_ar: "تسليم", count: 0, pct: 0 },
+      ];
+    } catch {
+      return [];
+    }
+  }
   const { count: registered } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
@@ -764,6 +1086,7 @@ function designsDistinct(_count: number, reg: number) {
 
 export async function getPlatformActivity() {
   const supabase = await getDb();
+  if (!supabase) return [];
   const { data: audit } = await supabase
     .from("audit_logs")
     .select("action, payload, created_at")
@@ -805,7 +1128,12 @@ export async function getNationalAIPanel() {
   const coverage = await getNationalCoverage();
   const topCity = coverage.sort((a, b) => b.orders - a.orders)[0];
   const trends = await getFashionTrends();
-  const { data: orders } = await (await getDb()).from("orders").select("total_price");
+  const db = await getDb();
+  let orders: Array<{ total_price?: number }> = [];
+  if (db) {
+    const res = await db.from("orders").select("total_price");
+    orders = res.data ?? [];
+  }
   const gmv = (orders ?? []).reduce((s, o) => s + Number(o.total_price ?? 0), 0);
   const count = (orders ?? []).length;
 
@@ -834,6 +1162,7 @@ export async function logAICall(entry: {
 }) {
   try {
     const supabase = await createServiceClient();
+    if (!supabase) return;
     await supabase.from("ai_call_logs").insert({
       user_id: entry.userId ?? null,
       feature: entry.feature,

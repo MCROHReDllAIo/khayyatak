@@ -4,16 +4,11 @@ import { getSupabasePublicConfig, getSupabaseServiceRoleKey } from "./env";
 
 export async function createClient() {
   const { url, anonKey, valid } = getSupabasePublicConfig();
-  if (!valid) {
-    throw new Error(
-      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local (run: npm run setup:supabase)."
-    );
-  }
-  const key = anonKey;
+  if (!valid) return null;
 
   const cookieStore = await cookies();
 
-  return createServerClient(url!, key, {
+  return createServerClient(url, anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -34,11 +29,7 @@ export async function createClient() {
 export async function createServiceClient() {
   const { url, valid } = getSupabasePublicConfig();
   const serviceKey = getSupabaseServiceRoleKey();
-  if (!valid || !url || !serviceKey) {
-    throw new Error(
-      "Supabase service role is not configured. Set SUPABASE_SERVICE_ROLE_KEY in .env.local."
-    );
-  }
+  if (!valid || !url || !serviceKey) return null;
   const { createClient: createSupabaseClient } = await import("@supabase/supabase-js");
   return createSupabaseClient(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },

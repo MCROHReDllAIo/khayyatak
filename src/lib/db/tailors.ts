@@ -1,6 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { isPostgresAuthEnabled } from "@/lib/auth/config";
-import { pgQuery } from "@/lib/db/postgres";
+import { isPostgresConfigured, pgQuery } from "@/lib/db/postgres";
 import type {
   City,
   Tailor,
@@ -81,11 +80,7 @@ function mapFullTailor(t: TailorRow, gallery: string[], services: TailorService[
 }
 
 async function getSupabaseSafe() {
-  try {
-    return await createClient();
-  } catch {
-    return null;
-  }
+  return createClient();
 }
 
 export async function fetchCities(): Promise<City[]> {
@@ -95,7 +90,7 @@ export async function fetchCities(): Promise<City[]> {
     return (data ?? []).map(mapCity);
   }
 
-  if (isPostgresAuthEnabled()) {
+  if (isPostgresConfigured()) {
     const { rows } = await pgQuery<Record<string, unknown>>(
       `SELECT id, name_ar, name_en, tailor_count, lat, lng FROM cities ORDER BY name_ar`
     );
@@ -147,7 +142,7 @@ export async function fetchTailorRailItems(cityId?: string, limit = 12): Promise
     return tailors.map((t) => mapTailorRow(t as TailorRow, portfolioMap.get(t.id as string) ?? []));
   }
 
-  if (isPostgresAuthEnabled()) {
+  if (isPostgresConfigured()) {
     const params: unknown[] = [];
     let sql = `
       SELECT t.id, t.profile_id, t.name_ar, t.name_en, t.city_id, t.rating, t.review_count,
@@ -194,7 +189,48 @@ export async function fetchTailorDetail(id: string): Promise<{
   match?: TailorMatch;
 } | null> {
   const supabase = await getSupabaseSafe();
-  if (!supabase) return null;
+  if (!supabase) {
+    if (!isPostgresConfigured()) return null;
+    const { rows } = await pgQuery<Record<string, unknown>>(
+      `SELECT t.*, c.name_ar AS city_name_ar
+       FROM tailors t LEFT JOIN cities c ON c.id = t.city_id
+       WHERE t.id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!rows[0]) return null;
+    const t = rows[0];
+    const { rows: services } = await pgQuery<Record<string, unknown>>(
+      `SELECT id, name_ar, name_en, category, starting_price FROM tailor_services WHERE tailor_id = $1`,
+      [id]
+    ).catch(() => ({ rows: [] as Record<string, unknown>[] }));
+    const { rows: reviews } = await pgQuery<Record<string, unknown>>(
+      `SELECT id, tailor_id, rating, comment_ar, comment_en, created_at FROM reviews WHERE tailor_id = $1 ORDER BY created_at DESC LIMIT 8`,
+      [id]
+    ).catch(() => ({ rows: [] as Record<string, unknown>[] }));
+    const tailor = mapFullTailor(
+      { ...t, cities: t.city_name_ar ? { name_ar: t.city_name_ar } : null } as TailorRow,
+      [],
+      services.map((s) => ({
+        id: s.id as string,
+        name_ar: s.name_ar as string,
+        name_en: (s.name_en as string) ?? undefined,
+        category: (s.category as string) ?? undefined,
+        starting_price: s.starting_price != null ? Number(s.starting_price) : undefined,
+      }))
+    );
+    return {
+      tailor,
+      reviews: reviews.map((r) => ({
+        id: r.id as string,
+        tailor_id: r.tailor_id as string,
+        customer_name: "عميل",
+        rating: Number(r.rating ?? 0),
+        comment_ar: (r.comment_ar as string) ?? "",
+        comment_en: (r.comment_en as string) ?? "",
+        created_at: String(r.created_at ?? ""),
+      })),
+    };
+  }
 
   const [{ data: tailorRow }, { data: portfolio }, { data: services }, { data: reviews }] = await Promise.all([
     supabase
