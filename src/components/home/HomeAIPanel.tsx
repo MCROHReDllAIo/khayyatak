@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, ImageIcon, Loader2, Mic, Sparkles, Wand2 } from "lucide-react";
@@ -35,11 +34,19 @@ interface HomeAIPanelProps {
   selectedStore: Tailor | null;
   onIntentChange: (intent: ProductSearchIntent | null, highlightTailorIds: string[]) => void;
   onClearStore?: () => void;
+  /** Close floating sheet before navigating away */
+  onRequestClose?: () => void;
   /** Inside floating sheet — tighter chrome */
   embedded?: boolean;
 }
 
-export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embedded }: HomeAIPanelProps) {
+export function HomeAIPanel({
+  selectedStore,
+  onIntentChange,
+  onClearStore,
+  onRequestClose,
+  embedded,
+}: HomeAIPanelProps) {
   const { t, locale } = useLocale();
   const { isAuthenticated, authLoading } = useAuth();
   const router = useRouter();
@@ -48,6 +55,8 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
   const [loading, setLoading] = useState(false);
   const [styleTwinLoading, setStyleTwinLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [controlHint, setControlHint] = useState<string | null>(null);
   const [context, setContext] = useState<ConciergeShoppingContext>({});
   const fileRef = useRef<HTMLInputElement>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
@@ -58,11 +67,30 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
   }, [messages, loading, styleTwinLoading]);
 
   const redirectLogin = useCallback(
-    (intent?: string) => {
-      const next = intent ? `/customer/ai?q=${encodeURIComponent(intent)}` : "/customer/ai";
+    (nextPath?: string) => {
+      const next = nextPath || "/customer/ai";
       router.push(`/login?redirect=${encodeURIComponent(next)}&signup=1`);
     },
     [router]
+  );
+
+  const requireAuth = useCallback(
+    (nextPath?: string) => {
+      if (!authLoading && !isAuthenticated) {
+        redirectLogin(nextPath);
+        return false;
+      }
+      return true;
+    },
+    [authLoading, isAuthenticated, redirectLogin]
+  );
+
+  const pushSystemNote = useCallback(
+    (content: string) => {
+      setControlHint(content);
+      window.setTimeout(() => setControlHint(null), 4000);
+    },
+    []
   );
 
   const runStyleTwin = useCallback(
@@ -119,7 +147,11 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
       if (!message && !imageDataUrl) return;
 
       if (!authLoading && !isAuthenticated) {
-        redirectLogin(message || undefined);
+        redirectLogin(
+          message
+            ? `/customer/ai?q=${encodeURIComponent(message)}`
+            : "/customer/ai"
+        );
         return;
       }
 
@@ -239,11 +271,25 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
     ]
   );
 
-  const startVoice = () => {
-    if (!isAuthenticated && !authLoading) {
-      redirectLogin();
+  const stopVoice = useCallback(() => {
+    try {
+      recognitionRef.current?.stop();
+      recognitionRef.current?.abort();
+    } catch {
+      /* ignore */
+    }
+    recognitionRef.current = null;
+    setListening(false);
+  }, []);
+
+  const startVoice = useCallback(() => {
+    if (!requireAuth("/customer/ai")) return;
+
+    if (listening) {
+      stopVoice();
       return;
     }
+
     const w = window as Window & {
       SpeechRecognition?: new () => SpeechRecognitionLike;
       webkitSpeechRecognition?: new () => SpeechRecognitionLike;
@@ -255,48 +301,100 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
       start: () => void;
       stop: () => void;
       abort: () => void;
-      onresult: ((e: { results: Array<{ 0: { transcript: string } }> }) => void) | null;
-      onerror: (() => void) | null;
+      onresult: ((e: { results: { [index: number]: { [index: number]: { transcript: string } } } }) => void) | null;
+      onerror: ((e: { error?: string }) => void) | null;
       onend: (() => void) | null;
     };
+
     const SR = w.SpeechRecognition ?? w.webkitSpeechRecognition;
     if (!SR) {
-      setText(PROMPTS[0].ar);
+      pushSystemNote(
+        t(
+          "المتصفح لا يدعم الصوت هنا — اكتب طلبك أو جرّب Chrome.",
+          "Voice isn’t supported in this browser — type your request or try Chrome."
+        )
+      );
       return;
     }
+
     try {
+      stopVoice();
       const rec = new SR();
-      rec.lang = "ar-SA";
+      rec.lang = locale === "ar" ? "ar-SA" : "en-US";
       rec.interimResults = false;
       rec.continuous = false;
       rec.onresult = (e) => {
-        const transcript = e.results[0]?.[0]?.transcript?.trim();
-        if (transcript) send(transcript);
+        const transcript = e.results?.[0]?.[0]?.transcript?.trim();
+        if (transcript) {
+          setText(transcript);
+          void send(transcript);
+        }
       };
-      rec.onerror = () => setListening(false);
+      rec.onerror = (e) => {
+        setListening(false);
+        if (e.error === "not-allowed") {
+          pushSystemNote(t("اسمح بالميكروفون من إعدادات المتصفح.", "Allow the microphone in browser settings."));
+        } else if (e.error !== "aborted") {
+          pushSystemNote(t("تعذر التعرف على الصوت. حاول مرة أخرى.", "Couldn’t hear that. Try again."));
+        }
+      };
       rec.onend = () => setListening(false);
       recognitionRef.current = rec;
       rec.start();
       setListening(true);
+      pushSystemNote(t("استمع الآن… تكلم بوضوح", "Listening… speak clearly"));
     } catch {
       setListening(false);
+      pushSystemNote(t("تعذر تشغيل الميكروفون.", "Couldn’t start the microphone."));
     }
-  };
+  }, [requireAuth, listening, stopVoice, locale, pushSystemNote, t, send]);
 
-  const onFile = (file: File) => {
-    if (!isAuthenticated && !authLoading) {
-      redirectLogin();
-      return;
-    }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const dataUrl = reader.result as string;
-      send(text.trim() || "أبغى شيء مشابه لهذه الصورة", dataUrl);
-    };
-    reader.readAsDataURL(file);
-  };
+  const onFile = useCallback(
+    (file: File) => {
+      if (!requireAuth("/customer/ai")) return;
+      if (!file.type.startsWith("image/")) {
+        pushSystemNote(t("اختر صورة فقط.", "Please choose an image file."));
+        return;
+      }
+      if (file.size > 8 * 1024 * 1024) {
+        pushSystemNote(t("الصورة كبيرة جدًا (حد أقصى 8MB).", "Image is too large (max 8MB)."));
+        return;
+      }
+      setUploading(true);
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result as string;
+        setUploading(false);
+        void send(text.trim() || t("أبغى شيء مشابه لهذه الصورة", "Find something similar to this photo"), dataUrl);
+      };
+      reader.onerror = () => {
+        setUploading(false);
+        pushSystemNote(t("تعذر قراءة الصورة.", "Couldn’t read the image."));
+      };
+      reader.readAsDataURL(file);
+    },
+    [requireAuth, pushSystemNote, t, send, text]
+  );
+
+  const openInnovate = useCallback(() => {
+    const idea = text.trim();
+    const path = idea
+      ? `/customer/innovation?idea=${encodeURIComponent(idea.slice(0, 280))}`
+      : "/customer/innovation";
+
+    if (!requireAuth(path)) return;
+
+    onRequestClose?.();
+    // Let the sheet start closing, then navigate
+    window.setTimeout(() => router.push(path), 120);
+  }, [text, requireAuth, onRequestClose, router]);
+
+  useEffect(() => {
+    return () => stopVoice();
+  }, [stopVoice]);
 
   const empty = messages.length === 0;
+  const busy = loading || styleTwinLoading || uploading;
 
   return (
     <section className="flex h-full min-h-0 flex-col" data-tour="home-ai-panel">
@@ -436,58 +534,69 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                send(text);
+                if (!busy) void send(text);
               }
             }}
             rows={2}
             placeholder={t("ماذا تريد أن تخيط؟", "What do you want tailored?")}
             className="w-full resize-none bg-transparent px-3 pt-2 text-base text-navy outline-none placeholder:text-muted-foreground/70 font-arabic"
+            disabled={busy}
           />
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1 pb-1 pt-2 border-t border-border/40" data-tour="home-ai-controls">
+          <div
+            className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1 pb-1 pt-2 border-t border-border/40"
+            data-tour="home-ai-controls"
+          >
             <div className="flex flex-wrap items-center gap-1 min-w-0">
               <button
                 type="button"
                 onClick={startVoice}
+                disabled={busy && !listening}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors shrink-0",
-                  listening ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted"
+                  listening
+                    ? "bg-red-500/15 text-red-600 ring-1 ring-red-500/30"
+                    : "text-muted-foreground hover:bg-muted"
                 )}
+                aria-pressed={listening}
               >
-                <Mic className="h-3.5 w-3.5" />
-                {t("صوت", "Voice")}
+                <Mic className={cn("h-3.5 w-3.5", listening && "animate-pulse")} />
+                {listening ? t("إيقاف", "Stop") : t("صوت", "Voice")}
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  if (!isAuthenticated && !authLoading) redirectLogin();
-                  else fileRef.current?.click();
-                }}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted shrink-0"
+                onClick={() => fileRef.current?.click()}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted shrink-0 disabled:opacity-40"
               >
-                <ImageIcon className="h-3.5 w-3.5" />
+                {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <ImageIcon className="h-3.5 w-3.5" />}
                 {t("صورة", "Photo")}
               </button>
-              <Link
-                href={isAuthenticated ? "/customer/innovation" : "/login?redirect=%2Fcustomer%2Finnovation&signup=1"}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-omani-gold hover:bg-omani-gold/10 font-medium shrink-0"
+              <button
+                type="button"
+                onClick={openInnovate}
+                disabled={busy}
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-omani-gold hover:bg-omani-gold/10 font-medium shrink-0 disabled:opacity-40"
                 data-tour="home-innovate"
               >
                 <Wand2 className="h-3.5 w-3.5" />
                 {t("ابتكار", "Innovate")}
-              </Link>
+              </button>
             </div>
             <button
               type="button"
-              disabled={loading || (!text.trim() && !listening)}
-              onClick={() => send(text)}
+              disabled={busy || (!text.trim() && !listening)}
+              onClick={() => void send(text)}
               className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-navy-light shrink-0"
             >
-              <Sparkles className="h-3.5 w-3.5" />
+              {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               {t("ابحث", "Search")}
               <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />
             </button>
           </div>
         </div>
+        {controlHint && (
+          <p className="mt-2 text-center text-[11px] text-omani-gold/90">{controlHint}</p>
+        )}
         {!isAuthenticated && !authLoading && (
           <p className="mt-2 text-center text-[11px] text-white/40">
             {t("سجّل دخولك لبدء البحث بالذكاء الاصطناعي", "Sign in to start AI search")}

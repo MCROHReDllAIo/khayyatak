@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Wand2, Upload, PenLine, Palette, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,28 +9,52 @@ import { InnovationStudio } from "@/components/innovation/InnovationStudio";
 import { FeatureTutorial } from "@/components/onboarding/FeatureTutorial";
 import { useLocale } from "@/lib/context/locale-context";
 
-export default function InnovationPage() {
+function InnovationPageInner() {
   const { t } = useLocale();
+  const searchParams = useSearchParams();
+  const ideaFromQuery = searchParams.get("idea")?.trim() || "";
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [seedIdea, setSeedIdea] = useState<string | null>(null);
+  const autoStarted = useRef(false);
 
-  const startSession = async (title?: string) => {
+  const startSession = async (title?: string, seed?: string) => {
     setCreating(true);
     try {
       const res = await fetch("/api/customer/innovation", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title ?? "تصميم جديد" }),
+        body: JSON.stringify({
+          title: (seed || title || "تصميم جديد").slice(0, 120),
+        }),
       });
       const data = await res.json();
-      if (data.session?.id) setSessionId(data.session.id);
+      if (data.session?.id) {
+        if (seed) setSeedIdea(seed);
+        setSessionId(data.session.id);
+      }
     } finally {
       setCreating(false);
     }
   };
 
+  useEffect(() => {
+    if (autoStarted.current || !ideaFromQuery) return;
+    autoStarted.current = true;
+    void startSession(ideaFromQuery, ideaFromQuery);
+  }, [ideaFromQuery]);
+
   if (sessionId) {
-    return <InnovationStudio sessionId={sessionId} onBack={() => setSessionId(null)} />;
+    return (
+      <InnovationStudio
+        sessionId={sessionId}
+        initialIdea={seedIdea}
+        onBack={() => {
+          setSessionId(null);
+          setSeedIdea(null);
+        }}
+      />
+    );
   }
 
   return (
@@ -53,9 +78,11 @@ export default function InnovationPage() {
             "Your idea starts with you.\nWe build the design together."
           )}
         </p>
-        <p className="text-xs text-muted-foreground">
-          {t("حوّلي فكرتك إلى تصميم.", "Turn your idea into a design.")}
-        </p>
+        {ideaFromQuery && (
+          <p className="text-xs text-primary max-w-md mx-auto">
+            {t("جاري فتح استوديو لفكرتك…", "Opening studio for your idea…")}
+          </p>
+        )}
       </motion.header>
 
       <motion.div
@@ -104,5 +131,19 @@ export default function InnovationPage() {
         )}
       </p>
     </div>
+  );
+}
+
+export default function InnovationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center gap-2 py-16 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> ...
+        </div>
+      }
+    >
+      <InnovationPageInner />
+    </Suspense>
   );
 }

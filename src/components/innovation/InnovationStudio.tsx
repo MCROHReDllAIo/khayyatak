@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Wand2,
@@ -22,9 +22,11 @@ import type { Tailor } from "@/types";
 interface InnovationStudioProps {
   sessionId: string;
   onBack?: () => void;
+  /** Prefill first collaboration message (from home AI innovate) */
+  initialIdea?: string | null;
 }
 
-export function InnovationStudio({ sessionId, onBack }: InnovationStudioProps) {
+export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationStudioProps) {
   const [spec, setSpec] = useState<InnovationDesignSpec>(DEFAULT_INNOVATION_SPEC);
   const [versions, setVersions] = useState<CustomDesignVersion[]>([]);
   const [currentVersion, setCurrentVersion] = useState<CustomDesignVersion | null>(null);
@@ -100,6 +102,17 @@ export function InnovationStudio({ sessionId, onBack }: InnovationStudioProps) {
       setLoading(false);
     }
   };
+
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (!initialIdea?.trim() || seededRef.current) return;
+    seededRef.current = true;
+    const timer = window.setTimeout(() => {
+      void sendMessage(initialIdea.trim());
+    }, 400);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once when studio opens
+  }, [initialIdea, sessionId]);
 
   const checkMaterials = async () => {
     setLoading(true);

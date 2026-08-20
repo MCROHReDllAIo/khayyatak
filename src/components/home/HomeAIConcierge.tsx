@@ -171,6 +171,7 @@ export function HomeAIConcierge({
                   selectedStore={selectedStore}
                   onIntentChange={onIntentChange}
                   onClearStore={onClearStore}
+                  onRequestClose={() => onOpenChange(false)}
                   embedded
                 />
               </div>
