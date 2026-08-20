@@ -1,0 +1,61 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 156 79% 26%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 33% 94%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 40 33% 94%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 45 68% 47%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 214 20% 90%;
+    --input: 214 20% 90%;
+    --ring: 156 71% 30%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+  }
+  html[dir="rtl"] body {
+    font-family: var(--font-cairo), Tahoma, sans-serif;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/80 backdrop-blur-md border border-white/20;
+  }
+  .gradient-hero {
+    background: linear-gradient(160deg, #071A33 0%, #0a2240 45%, #0F7654 100%);
+  }
+  .editorial-title {
+    @apply text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight text-navy leading-[1.15];
+  }
+  .editorial-sub {
+    @apply text-base md:text-lg text-muted-foreground leading-relaxed max-w-xl;
+  }
+  .fashion-divider {
+    @apply border-t border-border/40;
+  }
+  .swatch {
+    @apply h-10 w-10 rounded-full border border-black/5 shadow-sm;
+  }
+}
