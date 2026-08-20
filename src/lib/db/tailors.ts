@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { isPostgresAuthEnabled } from "@/lib/auth/config";
+import { pgQuery } from "@/lib/db/postgres";
 import type {
   City,
   Tailor,
@@ -88,10 +90,19 @@ async function getSupabaseSafe() {
 
 export async function fetchCities(): Promise<City[]> {
   const supabase = await getSupabaseSafe();
-  if (!supabase) return [];
+  if (supabase) {
+    const { data } = await supabase.from("cities").select("*").order("name_ar");
+    return (data ?? []).map(mapCity);
+  }
 
-  const { data } = await supabase.from("cities").select("*").order("name_ar");
-  return (data ?? []).map(mapCity);
+  if (isPostgresAuthEnabled()) {
+    const { rows } = await pgQuery<Record<string, unknown>>(
+      `SELECT id, name_ar, name_en, tailor_count, lat, lng FROM cities ORDER BY name_ar`
+    );
+    return rows.map(mapCity);
+  }
+
+  return [];
 }
 
 async function fetchPortfolioPreviewMap(tailorIds: string[]): Promise<Map<string, string[]>> {
@@ -119,22 +130,53 @@ async function fetchPortfolioPreviewMap(tailorIds: string[]): Promise<Map<string
 
 export async function fetchTailorRailItems(cityId?: string, limit = 12): Promise<TailorRailItem[]> {
   const supabase = await getSupabaseSafe();
-  if (!supabase) return [];
+  if (supabase) {
+    let query = supabase
+      .from("tailors")
+      .select("id, profile_id, name_ar, name_en, city_id, rating, review_count, starting_price, delivery_days, specializations, verified, cover_image, availability_status, cities(name_ar, name_en)")
+      .eq("verified", true)
+      .order("rating", { ascending: false })
+      .limit(limit);
 
-  let query = supabase
-    .from("tailors")
-    .select("id, profile_id, name_ar, name_en, city_id, rating, review_count, starting_price, delivery_days, specializations, verified, cover_image, availability_status, cities(name_ar, name_en)")
-    .eq("verified", true)
-    .order("rating", { ascending: false })
-    .limit(limit);
+    if (cityId) query = query.eq("city_id", cityId);
 
-  if (cityId) query = query.eq("city_id", cityId);
+    const { data: tailors } = await query;
+    if (!tailors?.length) return [];
 
-  const { data: tailors } = await query;
-  if (!tailors?.length) return [];
+    const portfolioMap = await fetchPortfolioPreviewMap(tailors.map((t) => t.id as string));
+    return tailors.map((t) => mapTailorRow(t as TailorRow, portfolioMap.get(t.id as string) ?? []));
+  }
 
-  const portfolioMap = await fetchPortfolioPreviewMap(tailors.map((t) => t.id as string));
-  return tailors.map((t) => mapTailorRow(t as TailorRow, portfolioMap.get(t.id as string) ?? []));
+  if (isPostgresAuthEnabled()) {
+    const params: unknown[] = [];
+    let sql = `
+      SELECT t.id, t.profile_id, t.name_ar, t.name_en, t.city_id, t.rating, t.review_count,
+             t.starting_price, t.delivery_days, t.specializations, t.verified, t.cover_image,
+             t.availability_status, c.name_ar AS city_name_ar
+      FROM tailors t
+      LEFT JOIN cities c ON c.id = t.city_id
+      WHERE t.verified = true
+    `;
+    if (cityId) {
+      params.push(cityId);
+      sql += ` AND t.city_id = $${params.length}`;
+    }
+    params.push(limit);
+    sql += ` ORDER BY t.rating DESC LIMIT $${params.length}`;
+
+    const { rows } = await pgQuery<Record<string, unknown>>(sql, params);
+    return rows.map((t) =>
+      mapTailorRow(
+        {
+          ...t,
+          cities: t.city_name_ar ? { name_ar: t.city_name_ar } : null,
+        } as TailorRow,
+        []
+      )
+    );
+  }
+
+  return [];
 }
 
 export async function fetchRecommendedTailors(

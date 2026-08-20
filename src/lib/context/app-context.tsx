@@ -19,6 +19,7 @@ import type {
 } from "@/types";
 import { DEFAULT_DESIGN } from "@/lib/constants/defaults";
 import { getBrowserSupabase, isSupabaseConfigured } from "@/lib/supabase/client";
+import type { AuthProviderKind } from "@/lib/auth/config";
 import { signOut as signOutAction } from "@/lib/actions/auth";
 
 interface AuthContextType {
@@ -27,6 +28,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isAuthenticated: boolean;
   authLoading: boolean;
+  authConfigured: boolean;
+  authProvider: AuthProviderKind;
+  /** @deprecated use authConfigured */
   supabaseConfigured: boolean;
   refreshProfile: () => Promise<void>;
 }
@@ -115,30 +119,65 @@ function mapOrder(row: Record<string, unknown>): Order {
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authProvider, setAuthProvider] = useState<AuthProviderKind>("none");
   const supabaseConfigured = isSupabaseConfigured();
+  const authConfigured = supabaseConfigured || authProvider === "postgres";
 
   const loadProfile = useCallback(async () => {
-    const supabase = getBrowserSupabase();
-    if (!supabase) {
-      setUser(null);
+    if (supabaseConfigured) {
+      const supabase = getBrowserSupabase();
+      if (!supabase) {
+        setUser(null);
+        setAuthLoading(false);
+        return;
+      }
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      if (!authUser) {
+        setUser(null);
+        setAuthLoading(false);
+        return;
+      }
+      const { data } = await supabase.from("profiles").select("*").eq("id", authUser.id).maybeSingle();
+      setUser(data ? mapProfile(data) : null);
       setAuthLoading(false);
       return;
     }
-    const {
-      data: { user: authUser },
-    } = await supabase.auth.getUser();
-    if (!authUser) {
-      setUser(null);
+
+    if (authProvider === "postgres") {
+      try {
+        const res = await fetch("/api/auth/session", { credentials: "include" });
+        const data = (await res.json()) as { profile?: Profile | null };
+        setUser(data.profile ? mapProfile(data.profile as unknown as Record<string, unknown>) : null);
+      } catch {
+        setUser(null);
+      }
       setAuthLoading(false);
       return;
     }
-    const { data } = await supabase.from("profiles").select("*").eq("id", authUser.id).maybeSingle();
-    setUser(data ? mapProfile(data) : null);
+
+    setUser(null);
     setAuthLoading(false);
-  }, []);
+  }, [authProvider, supabaseConfigured]);
 
   useEffect(() => {
+    if (supabaseConfigured) {
+      setAuthProvider("supabase");
+      return;
+    }
+    fetch("/api/auth/config")
+      .then((r) => r.json())
+      .then((d: { provider?: AuthProviderKind }) => setAuthProvider(d.provider ?? "none"))
+      .catch(() => setAuthProvider("none"));
+  }, [supabaseConfigured]);
+
+  useEffect(() => {
+    if (!supabaseConfigured && authProvider === "none") return;
     loadProfile();
+  }, [loadProfile, authProvider, supabaseConfigured]);
+
+  useEffect(() => {
     const supabase = getBrowserSupabase();
     if (!supabase) return;
     const {
@@ -150,11 +189,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile]);
 
   const logout = useCallback(async () => {
-    const supabase = getBrowserSupabase();
-    if (supabase) await supabase.auth.signOut();
+    if (authProvider === "postgres") {
+      await fetch("/api/auth/session", { method: "DELETE", credentials: "include" });
+    } else {
+      const supabase = getBrowserSupabase();
+      if (supabase) await supabase.auth.signOut();
+    }
     setUser(null);
     await signOutAction();
-  }, []);
+  }, [authProvider]);
 
   return (
     <AuthContext.Provider
@@ -164,7 +207,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         isAuthenticated: !!user,
         authLoading,
-        supabaseConfigured,
+        authConfigured,
+        authProvider,
+        supabaseConfigured: authConfigured,
         refreshProfile: loadProfile,
       }}
     >

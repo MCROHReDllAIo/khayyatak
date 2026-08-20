@@ -20,7 +20,7 @@ function LoginForm() {
   const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshProfile, supabaseConfigured } = useAuth();
+  const { refreshProfile, authConfigured, authProvider } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,8 +42,8 @@ function LoginForm() {
     setError(null);
     setLoading(true);
 
-    if (!supabaseConfigured) {
-      setError(t("Supabase غير مُعد. راجع ملف .env.local", "Supabase is not configured. Check .env.local"));
+    if (!authConfigured) {
+      setError(t("نظام الدخول غير مُعد بعد", "Authentication is not configured yet"));
       setLoading(false);
       return;
     }
@@ -66,7 +66,13 @@ function LoginForm() {
 
     await refreshProfile();
     setLoading(false);
-    router.push(redirect !== "/" ? redirect : roleHome[role]);
+    const dest =
+      redirect !== "/"
+        ? redirect
+        : mode === "signup"
+          ? roleHome[role]
+          : "/customer";
+    router.push(dest);
     router.refresh();
   }
 
@@ -82,33 +88,35 @@ function LoginForm() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-navy">{t("تسجيل الدخول", "Sign In")}</h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              {t(`${BRAND.nameAr} — حساب حقيقي عبر Supabase Auth`, `${BRAND.nameEn} — real account via Supabase Auth`)}
+              {authProvider === "postgres"
+                ? t(`${BRAND.nameAr} — حساب حقيقي`, `${BRAND.nameEn} — secure account`)
+                : t(`${BRAND.nameAr} — حساب حقيقي عبر Supabase Auth`, `${BRAND.nameEn} — real account via Supabase Auth`)}
             </p>
           </div>
 
-          {!supabaseConfigured && (
+          {!authConfigured && (
             <Card className="mb-4 border-amber-300 bg-amber-50">
               <CardContent className="p-4 text-sm text-amber-900 space-y-2">
                 <p>
                   {t(
-                    "يجب إعداد NEXT_PUBLIC_SUPABASE_URL و NEXT_PUBLIC_SUPABASE_ANON_KEY في .env.local",
-                    "Configure NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local"
+                    "أضف DATABASE_URL (Railway) أو مفاتيح Supabase في .env.local",
+                    "Add DATABASE_URL (Railway) or Supabase keys in .env.local"
                   )}
                 </p>
                 <p className="text-xs text-amber-800/80">
                   {t(
-                    "شغّل في Terminal: npm run setup:supabase — ثم أعد تشغيل npm run dev",
-                    "Run in terminal: npm run setup:supabase — then restart npm run dev"
+                    "Railway: npm run db:migrate · Supabase: npm run setup:supabase",
+                    "Railway: npm run db:migrate · Supabase: npm run setup:supabase"
                   )}
                 </p>
-                <a
-                  href="https://supabase.com/dashboard/project/_/settings/api"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-block text-xs font-medium text-primary underline"
-                >
-                  {t("فتح Supabase API Settings", "Open Supabase API Settings")}
-                </a>
+              </CardContent>
+            </Card>
+          )}
+
+          {authProvider === "postgres" && (
+            <Card className="mb-4 border-primary/20 bg-primary/5">
+              <CardContent className="p-3 text-xs text-primary">
+                {t("متصل بقاعدة PostgreSQL على Railway", "Connected to Railway PostgreSQL")}
               </CardContent>
             </Card>
           )}
@@ -169,7 +177,7 @@ function LoginForm() {
                   autoComplete={mode === "login" ? "current-password" : "new-password"}
                 />
                 {error && <p className="text-sm text-red-600">{error}</p>}
-                <Button type="submit" className="w-full" disabled={loading || !supabaseConfigured}>
+                <Button type="submit" className="w-full" disabled={loading || !authConfigured}>
                   {loading ? t("جاري...", "Loading...") : mode === "login" ? t("دخول", "Sign In") : t("إنشاء حساب", "Create Account")}
                 </Button>
               </form>

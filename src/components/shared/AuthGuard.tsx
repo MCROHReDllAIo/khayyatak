@@ -11,12 +11,12 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ role, children }: AuthGuardProps) {
-  const { isAuthenticated, role: userRole, authLoading, supabaseConfigured } = useAuth();
+  const { isAuthenticated, role: userRole, authLoading, authConfigured } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
     if (authLoading) return;
-    if (!supabaseConfigured) {
+    if (!authConfigured) {
       router.replace("/login");
       return;
     }
@@ -27,7 +27,7 @@ export function AuthGuard({ role, children }: AuthGuardProps) {
     if (role && userRole !== role) {
       router.replace("/login");
     }
-  }, [isAuthenticated, userRole, role, router, authLoading, supabaseConfigured]);
+  }, [isAuthenticated, userRole, role, router, authLoading, authConfigured]);
 
   if (authLoading) {
     return (
@@ -37,7 +37,7 @@ export function AuthGuard({ role, children }: AuthGuardProps) {
     );
   }
 
-  if (!isAuthenticated || (role && userRole !== role)) {
+  if (!authConfigured || !isAuthenticated || (role && userRole !== role)) {
     return (
       <div className="min-h-[50vh] flex items-center justify-center">
         <p className="text-muted-foreground text-sm">جاري التحقق...</p>
