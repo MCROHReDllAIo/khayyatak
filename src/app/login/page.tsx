@@ -48,6 +48,8 @@ function LoginForm() {
       return;
     }
 
+    let nextRole: UserRole = role;
+
     if (mode === "login") {
       const result = await signInWithPassword(email, password);
       if (result.error) {
@@ -55,6 +57,7 @@ function LoginForm() {
         setLoading(false);
         return;
       }
+      if (result.role) nextRole = result.role;
     } else {
       const result = await signUp(email, password, fullName, role);
       if (result.error) {
@@ -66,12 +69,7 @@ function LoginForm() {
 
     await refreshProfile();
     setLoading(false);
-    const dest =
-      redirect !== "/"
-        ? redirect
-        : mode === "signup"
-          ? roleHome[role]
-          : "/customer";
+    const dest = redirect !== "/" ? redirect : roleHome[nextRole];
     router.push(dest);
     router.refresh();
   }

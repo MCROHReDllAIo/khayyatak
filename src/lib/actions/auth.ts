@@ -30,14 +30,15 @@ export async function signInWithPassword(email: string, password: string) {
     const supabase = await createClient();
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
-    return { success: true };
+    const profile = await getSessionProfile();
+    return { success: true, role: profile?.role };
   }
 
   if (isPostgresAuthEnabled()) {
     const result = await signInWithPostgres(email, password);
     if (result.error || !result.profile) return { error: result.error ?? "Login failed" };
     await setPostgresSession(result.profile);
-    return { success: true };
+    return { success: true, role: result.profile.role };
   }
 
   return { error: "Auth is not configured" };

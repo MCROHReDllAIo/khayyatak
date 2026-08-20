@@ -12,7 +12,8 @@
     "setup:supabase": "node scripts/setup-supabase-env.mjs",
     "setup:openrouter": "node scripts/setup-openrouter-env.mjs",
     "db:migrate": "node scripts/db-migrate.mjs",
-    "test:ai": "node scripts/test-ai.mjs"
+    "test:ai": "node scripts/test-ai.mjs",
+    "seed:admin": "node scripts/seed-admin.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
