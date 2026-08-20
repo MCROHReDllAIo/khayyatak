@@ -37,7 +37,7 @@ export function HomeMarketplacePanel({
   const hasIntentResults = Boolean(filter.intent) && ranked.some((r) => r.highlighted);
 
   return (
-    <section className="flex h-full min-h-0 flex-col">
+    <section className="flex h-full min-h-0 flex-col" data-tour="home-stores">
       <header className="shrink-0 space-y-3 border-b border-border/40 pb-4">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-omani-gold">
@@ -122,7 +122,10 @@ export function HomeMarketplacePanel({
             ))}
           </div>
         ) : ranked.length === 0 ? (
-          <div className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-white/60 px-6 text-center">
+          <div
+            data-tour="home-store-card"
+            className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-white/60 px-6 text-center"
+          >
             <p className="text-base font-semibold text-navy">
               {t("ستظهر المتاجر هنا عند انضمامها إلى خياطك.", "Stores will appear here as they join Khayyatak.")}
             </p>
@@ -135,15 +138,16 @@ export function HomeMarketplacePanel({
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 pb-8">
-            {ranked.map(({ tailor, badges, highlighted }) => (
-              <HomeStoreCard
-                key={tailor.id}
-                tailor={tailor}
-                badges={badges}
-                highlighted={highlighted}
-                selected={filter.selectedTailorId === tailor.id}
-                onSelect={onSelectStore}
-              />
+            {ranked.map(({ tailor, badges, highlighted }, idx) => (
+              <div key={tailor.id} {...(idx === 0 ? { "data-tour": "home-store-card" } : {})}>
+                <HomeStoreCard
+                  tailor={tailor}
+                  badges={badges}
+                  highlighted={highlighted}
+                  selected={filter.selectedTailorId === tailor.id}
+                  onSelect={onSelectStore}
+                />
+              </div>
             ))}
           </div>
         )}

@@ -6,6 +6,7 @@ import { Sparkles } from "lucide-react";
 import { useLocale } from "@/lib/context/locale-context";
 import { useAppState } from "@/lib/context/app-context";
 import { MeasurementScanner } from "@/components/ai/MeasurementScanner";
+import { FeatureTutorial } from "@/components/onboarding/FeatureTutorial";
 import type { Measurements } from "@/types";
 
 export default function MeasurementsPage() {
@@ -20,6 +21,13 @@ export default function MeasurementsPage() {
 
   return (
     <div className="max-w-lg mx-auto space-y-6">
+      <FeatureTutorial
+        featureId="measurements"
+        titleAr="كيف تحفظ مقاساتك؟"
+        titleEn="How do you save measurements?"
+        bodyAr="احفظ مقاساتك مرة واحدة لاستخدامها في الطلبات. القياسات التقديرية بالـ AI تحتاج مراجعة عند الحاجة."
+        bodyEn="Save measurements once for future orders. AI estimates should be reviewed when needed."
+      />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold text-navy flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />

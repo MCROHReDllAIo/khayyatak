@@ -46,6 +46,19 @@ export default function ProfilePage() {
 
           <div className="space-y-2">
             <Link href="/customer/measurements"><Button variant="outline" className="w-full">{t("تحديث المقاسات", "Update Measurements")}</Button></Link>
+            <Button
+              variant="outline"
+              className="w-full"
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
+                  window.dispatchEvent(new Event("kytk-restart-tour"));
+                  window.location.href = "/";
+                }
+              }}
+            >
+              {t("جولة تعريفية — ابدأ الجولة", "Intro tour — start walkthrough")}
+            </Button>
             <Link href="/login"><Button variant="ghost" className="w-full" onClick={logout}>{t("تبديل الحساب", "Switch Account")}</Button></Link>
           </div>
         </CardContent>

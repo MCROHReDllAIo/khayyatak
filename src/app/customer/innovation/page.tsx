@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Wand2, Upload, PenLine, Palette, ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InnovationStudio } from "@/components/innovation/InnovationStudio";
+import { FeatureTutorial } from "@/components/onboarding/FeatureTutorial";
 import { useLocale } from "@/lib/context/locale-context";
 
 export default function InnovationPage() {
@@ -33,6 +34,13 @@ export default function InnovationPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-10 py-4">
+      <FeatureTutorial
+        featureId="innovation"
+        titleAr="أول مرة تستخدم ابتكار؟"
+        titleEn="First time using Innovate?"
+        bodyAr="صف فكرتك للذكاء، عدّل التصميم، ثم أرسله للخياط لمراجعة إمكانية التنفيذ. المعاينة ليست منتج سوق."
+        bodyEn="Describe your idea to AI, refine the design, then send it to a tailor for feasibility. Preview is not a marketplace product."
+      />
       <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-primary text-xs font-semibold">
           <Wand2 className="h-3.5 w-3.5" />

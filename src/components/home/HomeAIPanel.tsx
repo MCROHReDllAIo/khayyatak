@@ -199,7 +199,7 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
   const empty = messages.length === 0;
 
   return (
-    <section className="flex h-full min-h-0 flex-col">
+    <section className="flex h-full min-h-0 flex-col" data-tour="home-ai">
       <header className="shrink-0 pb-4">
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
           {t("مستشارك الذكي", "Your AI stylist")}
@@ -291,7 +291,7 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
             e.target.value = "";
           }}
         />
-        <div className="rounded-2xl border border-white/15 bg-white/95 p-2 shadow-[0_20px_60px_-24px_rgba(0,0,0,0.5)]">
+        <div className="rounded-2xl border border-white/15 bg-white/95 p-2 shadow-[0_20px_60px_-24px_rgba(0,0,0,0.5)]" data-tour="home-ai-input">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
@@ -305,7 +305,7 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
             placeholder={t("ماذا تريد أن تخيط؟", "What do you want tailored?")}
             className="w-full resize-none bg-transparent px-3 pt-2 text-base text-navy outline-none placeholder:text-muted-foreground/70 font-arabic"
           />
-          <div className="flex items-center justify-between gap-2 px-1 pb-1 pt-2 border-t border-border/40">
+          <div className="flex items-center justify-between gap-2 px-1 pb-1 pt-2 border-t border-border/40" data-tour="home-ai-controls">
             <div className="flex items-center gap-1">
               <button
                 type="button"
@@ -332,6 +332,7 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
               <Link
                 href={isAuthenticated ? "/customer/innovation" : "/login?redirect=%2Fcustomer%2Finnovation&signup=1"}
                 className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-omani-gold hover:bg-omani-gold/10 font-medium"
+                data-tour="home-innovate"
               >
                 <Wand2 className="h-3.5 w-3.5" />
                 {t("ابتكار", "Innovate")}
