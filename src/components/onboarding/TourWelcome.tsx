@@ -19,7 +19,11 @@ export function TourWelcome({ open, onStart, onExplore }: TourWelcomeProps) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050d18] px-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-[#050d18] px-4 overflow-y-auto overflow-x-hidden"
+          style={{
+            paddingTop: "max(1rem, env(safe-area-inset-top))",
+            paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+          }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

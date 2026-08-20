@@ -43,7 +43,7 @@ export function HomeMarketplacePanel({
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-omani-gold">
             {t("سوق حقيقي", "Real marketplace")}
           </p>
-          <h2 className="mt-1 text-2xl md:text-3xl font-bold text-navy tracking-tight">
+          <h2 className="mt-1 text-xl sm:text-2xl md:text-3xl font-bold text-navy tracking-tight">
             {t("المتاجر", "Stores")}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -67,7 +67,7 @@ export function HomeMarketplacePanel({
           />
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-none overscroll-x-contain">
           {STORE_CATEGORIES.map((c) => (
             <button
               key={c.id}

@@ -56,14 +56,14 @@ export function HomeAIConcierge({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 8 }}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="fixed z-[60] bottom-5 end-5 md:bottom-8 md:end-8"
+            className="fixed z-[60] bottom-[max(1.25rem,env(safe-area-inset-bottom))] end-[max(1.25rem,env(safe-area-inset-right))] md:bottom-8 md:end-8 max-w-[calc(100vw-2rem)]"
             data-tour="home-ai-fab"
           >
             <button
               type="button"
               onClick={() => onOpenChange(true)}
               className={cn(
-                "group relative flex items-center gap-3 rounded-full pe-5 ps-3.5 h-14",
+                "group relative flex items-center gap-2.5 sm:gap-3 rounded-full pe-4 sm:pe-5 ps-3 h-12 sm:h-14 max-w-full",
                 "bg-gradient-to-l from-navy via-[#0c2440] to-navy text-white",
                 "shadow-[0_12px_40px_-8px_rgba(7,26,51,0.55)] ring-1 ring-omani-gold/30",
                 "hover:ring-omani-gold/55 hover:shadow-[0_16px_48px_-8px_rgba(200,164,93,0.35)]",
@@ -76,12 +76,12 @@ export function HomeAIConcierge({
                 className="pointer-events-none absolute -inset-1 rounded-full bg-omani-gold/25 blur-md opacity-60 animate-pulse"
               />
               <span className="absolute inset-0 rounded-full bg-omani-gold/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-              <span className="relative flex h-10 w-10 items-center justify-center rounded-full bg-omani-gold text-navy shadow-inner ring-2 ring-omani-gold/40">
-                <Sparkles className="h-5 w-5" />
+              <span className="relative flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-full bg-omani-gold text-navy shadow-inner ring-2 ring-omani-gold/40">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
               </span>
-              <span className="relative text-start pe-1">
-                <span className="block text-sm font-semibold leading-tight">{t("مستشارك الذكي", "AI Concierge")}</span>
-                <span className="block text-[11px] text-white/55">{t("قل ماذا تريد", "Tell us what you want")}</span>
+              <span className="relative text-start pe-1 min-w-0">
+                <span className="block text-sm font-semibold leading-tight truncate">{t("مستشارك الذكي", "AI Concierge")}</span>
+                <span className="block text-[11px] text-white/55 truncate">{t("قل ماذا تريد", "Tell us what you want")}</span>
               </span>
               <MessageCircle className="relative h-4 w-4 text-omani-gold/80 hidden sm:block" />
             </button>
@@ -113,9 +113,11 @@ export function HomeAIConcierge({
               transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
               className={cn(
                 "fixed z-[75] flex flex-col overflow-hidden",
-                "inset-x-3 bottom-3 top-[12vh] sm:inset-x-auto sm:end-6 sm:bottom-6 sm:top-auto",
-                "sm:w-[min(440px,calc(100vw-3rem))] sm:h-[min(740px,calc(100vh-5rem))]",
-                "rounded-3xl border border-white/12",
+                "inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] top-[max(4.5rem,env(safe-area-inset-top)+3.5rem)]",
+                "sm:inset-x-auto sm:end-[max(1.25rem,env(safe-area-inset-right))] sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))] sm:top-auto",
+                "sm:w-[min(420px,calc(100vw-2.5rem))] sm:h-[min(700px,calc(100dvh-5.5rem))] sm:max-h-[calc(100dvh-5.5rem)]",
+                "max-h-[calc(100dvh-5rem)]",
+                "rounded-2xl sm:rounded-3xl border border-white/12",
                 "bg-gradient-to-b from-[#0d2240] via-[#0a1a32] to-[#071526]",
                 "shadow-[0_24px_80px_-20px_rgba(0,0,0,0.65),0_0_0_1px_rgba(200,164,93,0.12)]",
                 "ring-1 ring-omani-gold/25"

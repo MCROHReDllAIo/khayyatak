@@ -32,16 +32,12 @@ export function Spotlight({
     );
   }
 
-  const top = Math.max(8, rect.top - padding);
-  const left = Math.max(8, rect.left - padding);
-  const width = Math.min(
-    typeof window !== "undefined" ? window.innerWidth - left - 8 : 400,
-    rect.width + padding * 2
-  );
-  const height = Math.min(
-    typeof window !== "undefined" ? window.innerHeight - top - 8 : 300,
-    rect.height + padding * 2
-  );
+  const vw = typeof window !== "undefined" ? window.innerWidth : 400;
+  const vh = typeof window !== "undefined" ? window.innerHeight : 300;
+  const top = Math.min(Math.max(8, rect.top - padding), vh - 48);
+  const left = Math.min(Math.max(8, rect.left - padding), vw - 48);
+  const width = Math.max(40, Math.min(vw - left - 8, rect.width + padding * 2));
+  const height = Math.max(40, Math.min(vh - top - 8, rect.height + padding * 2));
 
   return (
     <div className={cn("fixed inset-0 z-[90] pointer-events-none", className)} aria-hidden>

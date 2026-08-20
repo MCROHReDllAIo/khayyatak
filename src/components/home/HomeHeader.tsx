@@ -20,9 +20,9 @@ export function HomeHeader({ onOpenAi }: HomeHeaderProps) {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071A33]/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:px-6 lg:px-8">
-        <Link href="/" className="flex items-baseline gap-2">
-          <span className="text-lg font-bold text-white font-arabic tracking-tight">{BRAND.nameAr}</span>
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-2 sm:gap-3 px-3 sm:px-4 md:px-6 lg:px-8 min-w-0">
+        <Link href="/" className="flex items-baseline gap-2 min-w-0 shrink">
+          <span className="text-base sm:text-lg font-bold text-white font-arabic tracking-tight truncate">{BRAND.nameAr}</span>
           <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-omani-gold/90">
             {BRAND.nameEn}
           </span>
@@ -40,7 +40,7 @@ export function HomeHeader({ onOpenAi }: HomeHeaderProps) {
           </Link>
         </nav>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             type="button"
             onClick={onOpenAi}

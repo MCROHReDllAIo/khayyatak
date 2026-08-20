@@ -443,13 +443,13 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
             placeholder={t("ماذا تريد أن تخيط؟", "What do you want tailored?")}
             className="w-full resize-none bg-transparent px-3 pt-2 text-base text-navy outline-none placeholder:text-muted-foreground/70 font-arabic"
           />
-          <div className="flex items-center justify-between gap-2 px-1 pb-1 pt-2 border-t border-border/40" data-tour="home-ai-controls">
-            <div className="flex items-center gap-1">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1 pb-1 pt-2 border-t border-border/40" data-tour="home-ai-controls">
+            <div className="flex flex-wrap items-center gap-1 min-w-0">
               <button
                 type="button"
                 onClick={startVoice}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors",
+                  "inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors shrink-0",
                   listening ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted"
                 )}
               >
@@ -462,14 +462,14 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
                   if (!isAuthenticated && !authLoading) redirectLogin();
                   else fileRef.current?.click();
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground hover:bg-muted shrink-0"
               >
                 <ImageIcon className="h-3.5 w-3.5" />
                 {t("صورة", "Photo")}
               </button>
               <Link
                 href={isAuthenticated ? "/customer/innovation" : "/login?redirect=%2Fcustomer%2Finnovation&signup=1"}
-                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-omani-gold hover:bg-omani-gold/10 font-medium"
+                className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs text-omani-gold hover:bg-omani-gold/10 font-medium shrink-0"
                 data-tour="home-innovate"
               >
                 <Wand2 className="h-3.5 w-3.5" />
@@ -480,7 +480,7 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embed
               type="button"
               disabled={loading || (!text.trim() && !listening)}
               onClick={() => send(text)}
-              className="inline-flex items-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-navy-light"
+              className="inline-flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-navy px-4 py-2 text-sm font-medium text-white disabled:opacity-40 hover:bg-navy-light shrink-0"
             >
               <Sparkles className="h-3.5 w-3.5" />
               {t("ابحث", "Search")}

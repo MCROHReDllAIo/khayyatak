@@ -74,26 +74,26 @@ export function HomeExperience() {
 
   return (
     <OnboardingProvider onOpenAi={() => setAiOpen(true)} onCloseAi={() => setAiOpen(false)}>
-      <div id="home-experience" className="min-h-screen bg-[#050d18] text-white">
+      <div id="home-experience" className="min-h-screen min-h-[100dvh] bg-[#050d18] text-white overflow-x-hidden">
         <HomeHeader onOpenAi={() => setAiOpen(true)} />
 
-        <div className="relative mx-auto max-w-6xl px-4 md:px-6 lg:px-8 pb-28 md:pb-24">
-          <div className="relative overflow-hidden pt-8 pb-8 md:pt-10 md:pb-10">
+        <div className="relative mx-auto w-full max-w-6xl px-3 sm:px-4 md:px-6 lg:px-8 pb-[7.5rem] sm:pb-28 md:pb-24">
+          <div className="relative overflow-hidden pt-6 pb-6 sm:pt-8 sm:pb-8 md:pt-10 md:pb-10">
             <GeometricPattern className="text-white opacity-[0.06]" />
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-              className="relative max-w-2xl"
+              className="relative max-w-2xl pe-1"
               data-tour="home-split"
             >
               <p className="text-[11px] uppercase tracking-[0.28em] text-omani-gold/90 mb-3">
                 {BRAND.nameEn}
               </p>
-              <h1 className="text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight font-arabic text-white leading-[1.15]">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight font-arabic text-white leading-[1.15] break-words">
                 {BRAND.nameAr}
               </h1>
-              <p className="mt-3 text-lg md:text-xl text-white/55 max-w-xl leading-relaxed">
+              <p className="mt-3 text-base sm:text-lg md:text-xl text-white/55 max-w-xl leading-relaxed">
                 {t("أنت تتخيّل. نحن نساعدك على تفصيله.", "You imagine it. We help tailor it.")}
               </p>
               <p className="mt-3 text-sm text-white/35 max-w-lg leading-relaxed">
@@ -109,7 +109,7 @@ export function HomeExperience() {
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.06, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-[1.75rem] border border-white/10 bg-[#f7f4ee] text-navy p-5 md:p-7 lg:p-8 min-h-[70vh] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.45)]"
+            className="rounded-2xl sm:rounded-[1.75rem] border border-white/10 bg-[#f7f4ee] text-navy p-4 sm:p-5 md:p-7 lg:p-8 min-h-[60vh] sm:min-h-[70vh] shadow-[0_20px_60px_-30px_rgba(0,0,0,0.45)] overflow-hidden"
           >
             <HomeMarketplacePanel
               tailors={tailors}
