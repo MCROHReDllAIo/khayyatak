@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useLocale } from "@/lib/context/locale-context";
 import { useAuth } from "@/lib/context/app-context";
 import { signInWithPassword, signUp } from "@/lib/actions/auth";
+import { safeAuthRedirect } from "@/lib/auth/redirects";
 import type { UserRole } from "@/types";
 import { Suspense } from "react";
 
@@ -35,18 +36,9 @@ function LoginForm() {
     if (searchParams.get("signup") === "1") setMode("signup");
   }, [searchParams]);
 
-  const roleHome: Record<UserRole, string> = {
-    customer: "/customer",
-    tailor: "/tailor/dashboard",
-    admin: "/admin",
-  };
-
   useEffect(() => {
     if (authLoading || !isAuthenticated || !userRole) return;
-    const dest = redirect !== "/" ? redirect : roleHome[userRole];
-    router.replace(dest);
-    // roleHome is a stable inline map of static routes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    router.replace(safeAuthRedirect(redirect, userRole));
   }, [authLoading, isAuthenticated, userRole, redirect, router]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -81,8 +73,7 @@ function LoginForm() {
 
     await refreshProfile();
     setLoading(false);
-    const dest = redirect !== "/" ? redirect : roleHome[nextRole];
-    router.push(dest);
+    router.push(safeAuthRedirect(redirect, nextRole));
     router.refresh();
   }
 

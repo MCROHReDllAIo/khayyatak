@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/context/app-context";
+import { roleHomePath } from "@/lib/auth/redirects";
 import type { UserRole } from "@/types";
 
 interface AuthGuardProps {
@@ -13,21 +14,23 @@ interface AuthGuardProps {
 export function AuthGuard({ role, children }: AuthGuardProps) {
   const { isAuthenticated, role: userRole, authLoading, authConfigured } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (authLoading) return;
     if (!authConfigured) {
-      router.replace("/login");
+      router.replace(`/login?redirect=${encodeURIComponent(pathname || "/")}`);
       return;
     }
     if (!isAuthenticated) {
-      router.replace("/login");
+      router.replace(`/login?redirect=${encodeURIComponent(pathname || "/")}&signup=1`);
       return;
     }
-    if (role && userRole !== role) {
-      router.replace("/login");
+    if (role && userRole && userRole !== role) {
+      // Wrong portal — send to that account's real home (not bare /login)
+      router.replace(roleHomePath(userRole));
     }
-  }, [isAuthenticated, userRole, role, router, authLoading, authConfigured]);
+  }, [isAuthenticated, userRole, role, router, authLoading, authConfigured, pathname]);
 
   if (authLoading) {
     return (

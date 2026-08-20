@@ -3,14 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSupabasePublicConfig } from "./env";
 import { isPostgresAuthEnabled } from "@/lib/auth/config";
 import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
+import { roleHomePath, safeAuthRedirect } from "@/lib/auth/redirects";
 
 const PROTECTED_PREFIXES = ["/customer", "/tailor", "/admin"];
-
-function roleHome(role: string): string {
-  if (role === "admin") return "/admin";
-  if (role === "tailor") return "/tailor/dashboard";
-  return "/customer";
-}
 
 function hasPostgresSession(request: NextRequest): { valid: boolean; role?: string } {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
@@ -34,13 +29,28 @@ export async function updateSession(request: NextRequest) {
       if (isProtected && !session.valid) {
         const loginUrl = request.nextUrl.clone();
         loginUrl.pathname = "/login";
-        loginUrl.searchParams.set("redirect", pathname);
+        const returnTo = `${pathname}${request.nextUrl.search || ""}`;
+        loginUrl.search = "";
+        loginUrl.searchParams.set("redirect", returnTo);
         return NextResponse.redirect(loginUrl);
       }
       if (session.valid && pathname === "/login") {
         const redirectParam = request.nextUrl.searchParams.get("redirect");
-        const dest = redirectParam ?? roleHome(session.role ?? "customer");
+        const dest = safeAuthRedirect(redirectParam, session.role ?? "customer");
         return NextResponse.redirect(new URL(dest, request.url));
+      }
+
+      // Keep each role inside its portal
+      if (session.valid && session.role) {
+        if (pathname.startsWith("/customer") && session.role !== "customer") {
+          return NextResponse.redirect(new URL(roleHomePath(session.role), request.url));
+        }
+        if (pathname.startsWith("/tailor") && session.role !== "tailor") {
+          return NextResponse.redirect(new URL(roleHomePath(session.role), request.url));
+        }
+        if (pathname.startsWith("/admin") && session.role !== "admin") {
+          return NextResponse.redirect(new URL(roleHomePath(session.role), request.url));
+        }
       }
     }
     return supabaseResponse;
@@ -68,13 +78,16 @@ export async function updateSession(request: NextRequest) {
   if (isProtected && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/login";
-    loginUrl.searchParams.set("redirect", pathname);
+    const returnTo = `${pathname}${request.nextUrl.search || ""}`;
+    loginUrl.search = "";
+    loginUrl.searchParams.set("redirect", returnTo);
     return NextResponse.redirect(loginUrl);
   }
 
   if (user && pathname === "/login") {
     const redirect = request.nextUrl.searchParams.get("redirect") ?? "/";
-    return NextResponse.redirect(new URL(redirect, request.url));
+    // Without role on the JWT path, still avoid sending bare "/" loops
+    return NextResponse.redirect(new URL(redirect === "/" ? "/customer" : redirect, request.url));
   }
 
   return supabaseResponse;

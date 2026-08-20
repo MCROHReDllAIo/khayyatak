@@ -48,7 +48,7 @@ export function HomeAIPanel({
   embedded,
 }: HomeAIPanelProps) {
   const { t, locale } = useLocale();
-  const { isAuthenticated, authLoading } = useAuth();
+  const { isAuthenticated, authLoading, role } = useAuth();
   const router = useRouter();
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
@@ -377,6 +377,19 @@ export function HomeAIPanel({
   );
 
   const openInnovate = useCallback(() => {
+    if (authLoading) return;
+
+    // Design studio is customer-only. Avoid bouncing tailors/admins into /customer then wrong portal.
+    if (isAuthenticated && role && role !== "customer") {
+      pushSystemNote(
+        t(
+          "استوديو ابتكار للعملاء. سجّل بحساب عميل للتصميم، أو افتح طلبات الابتكار من لوحة الخياط.",
+          "Innovation Studio is for customers. Sign in as a customer to design, or open Innovation requests from the tailor dashboard."
+        )
+      );
+      return;
+    }
+
     const idea = text.trim();
     const path = idea
       ? `/customer/innovation?idea=${encodeURIComponent(idea.slice(0, 280))}`
@@ -385,9 +398,8 @@ export function HomeAIPanel({
     if (!requireAuth(path)) return;
 
     onRequestClose?.();
-    // Let the sheet start closing, then navigate
     window.setTimeout(() => router.push(path), 120);
-  }, [text, requireAuth, onRequestClose, router]);
+  }, [text, requireAuth, onRequestClose, router, authLoading, isAuthenticated, role, pushSystemNote, t]);
 
   useEffect(() => {
     return () => stopVoice();

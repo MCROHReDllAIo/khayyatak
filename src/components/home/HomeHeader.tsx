@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { BRAND } from "@/lib/constants/brand";
 import { BrandLogo } from "@/components/brand/BrandLogo";
@@ -15,9 +16,24 @@ interface HomeHeaderProps {
 
 export function HomeHeader({ onOpenAi }: HomeHeaderProps) {
   const { t } = useLocale();
+  const router = useRouter();
   const { isAuthenticated, authLoading, role } = useAuth();
   const dashboardHref =
     role === "admin" ? "/admin" : role === "tailor" ? "/tailor/dashboard" : "/customer";
+
+  const openInnovate = () => {
+    if (authLoading) return;
+    if (isAuthenticated && role && role !== "customer") {
+      // Don't bounce into /customer/innovation (middleware would dump them on the wrong dashboard)
+      router.push(role === "tailor" ? "/tailor/innovation" : "/admin");
+      return;
+    }
+    if (!isAuthenticated) {
+      router.push(`/login?redirect=${encodeURIComponent("/customer/innovation")}&signup=1`);
+      return;
+    }
+    router.push("/customer/innovation");
+  };
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/8 bg-[#050d18]/55 backdrop-blur-2xl">
@@ -38,12 +54,13 @@ export function HomeHeader({ onOpenAi }: HomeHeaderProps) {
           >
             {t("المتاجر", "Stores")}
           </a>
-          <Link
-            href="/customer/innovation"
+          <button
+            type="button"
+            onClick={openInnovate}
             className="rounded-full px-3.5 py-1.5 hover:bg-white/8 hover:text-white transition-colors"
           >
             {t("ابتكار", "Innovate")}
-          </Link>
+          </button>
           <Link
             href="/marketplace"
             className="rounded-full px-3.5 py-1.5 hover:bg-white/8 hover:text-white transition-colors"
