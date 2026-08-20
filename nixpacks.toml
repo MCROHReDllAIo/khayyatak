@@ -1,4 +1,0 @@
-# Railway / Nixpacks — Node 22 + devDependencies for Next.js build
-[variables]
-NIXPACKS_NODE_VERSION = "22"
-NIXPACKS_INSTALL_DEV_DEPS = "true"

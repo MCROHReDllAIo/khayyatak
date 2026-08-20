@@ -240,7 +240,7 @@ export function ConciergeInput({
 
       {isHero && (
         <p className="mt-4 text-center text-sm text-white/50">
-          {t("نص · صوت · صورة · Live — AI يفهم ويحوّل إلى تصميم", "Text · Voice · Image · Live — AI understands and designs")}
+          {t("قول الي في بالك ترانا بنفهمك..", "Say what's on your mind — we've got you..")}
         </p>
       )}
     </motion.div>
