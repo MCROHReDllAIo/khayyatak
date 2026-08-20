@@ -2,7 +2,6 @@
 
 import { AICommandNetworkSection, AIUsageSection, AIPerformanceSection } from "@/components/admin/sections/SupportSections";
 import { ExecutiveInsights } from "@/components/admin/sections/ExecutiveInsights";
-import { AIStatusBanner } from "@/components/ai/AIStatusBadge";
 import { useLocale } from "@/lib/context/locale-context";
 import { useEffect, useState } from "react";
 import { SectionSkeleton } from "@/components/admin/AdminSkeleton";
@@ -23,7 +22,6 @@ export default function AdminAICenterPage() {
         <h1 className="text-2xl font-bold text-navy">AI Command Center</h1>
         <p className="text-sm text-muted-foreground">{t("شبكة الذكاء الاصطناعي للمنصة", "Platform AI network")}</p>
       </div>
-      <AIStatusBanner />
       <AICommandNetworkSection />
       <AIUsageSection data={data.ai as Parameters<typeof AIUsageSection>[0]["data"]} />
       <AIPerformanceSection data={data.aiPerf as Parameters<typeof AIPerformanceSection>[0]["data"]} />

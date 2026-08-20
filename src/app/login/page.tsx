@@ -31,6 +31,10 @@ function LoginForm() {
 
   const redirect = searchParams.get("redirect") ?? "/";
 
+  useEffect(() => {
+    if (searchParams.get("signup") === "1") setMode("signup");
+  }, [searchParams]);
+
   const roleHome: Record<UserRole, string> = {
     customer: "/customer",
     tailor: "/tailor/dashboard",

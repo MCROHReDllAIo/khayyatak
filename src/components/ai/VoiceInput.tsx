@@ -16,10 +16,11 @@ const QUICK_PHRASES = [
 interface VoiceInputProps {
   onTranscript: (text: string) => void;
   onListeningChange?: (listening: boolean) => void;
+  disabled?: boolean;
   className?: string;
 }
 
-export function VoiceInput({ onTranscript, onListeningChange, className }: VoiceInputProps) {
+export function VoiceInput({ onTranscript, onListeningChange, disabled, className }: VoiceInputProps) {
   const { t } = useLocale();
   const [listening, setListening] = useState(false);
   const [phraseMode, setPhraseMode] = useState(false);
@@ -55,6 +56,7 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
   );
 
   const startListening = () => {
+    if (disabled) return;
     if (listening) {
       stopListening();
       return;
@@ -123,6 +125,7 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
         type="button"
         variant={listening ? "default" : "outline"}
         size="sm"
+        disabled={disabled}
         className={cn("gap-2", className)}
         onClick={startListening}
         aria-pressed={listening}

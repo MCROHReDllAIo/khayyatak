@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "@/lib/context/locale-context";
 import { Card, CardContent } from "@/components/ui/card";
+import { SystemSetupPanel } from "@/components/admin/SystemSetupPanel";
 import type { City } from "@/types";
 
 export default function AdminSettingsPage() {
@@ -25,8 +26,12 @@ export default function AdminSettingsPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-navy">{t("الإعدادات", "Settings")}</h1>
-        <p className="text-sm text-muted-foreground">{t("إعدادات المنصة والمدن", "Platform and city settings")}</p>
+        <p className="text-sm text-muted-foreground">
+          {t("إعدادات المنصة والميزات والمدن", "Platform features, env setup, and cities")}
+        </p>
       </div>
+
+      <SystemSetupPanel />
 
       <Card>
         <CardContent className="p-6">
@@ -57,7 +62,9 @@ export default function AdminSettingsPage() {
               {cities.map((city) => (
                 <div key={city.id} className="flex justify-between items-center p-3 rounded-xl border">
                   <span className="font-medium">{city.name_ar}</span>
-                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">{city.tailor_count} {t("خياط", "tailors")}</span>
+                  <span className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
+                    {city.tailor_count} {t("خياط", "tailors")}
+                  </span>
                 </div>
               ))}
             </div>

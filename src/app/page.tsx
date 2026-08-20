@@ -137,7 +137,7 @@ export default function HomePage() {
           </motion.div>
 
           <div className="mt-10 md:mt-14 max-w-2xl mx-auto">
-            <ConciergeInput variant="hero" />
+            <ConciergeInput variant="hero" requireAuth />
           </div>
 
           <motion.div

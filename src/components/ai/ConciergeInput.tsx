@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ImageIcon, Sparkles, ArrowLeft, X, Loader2 } from "lucide-react";
+import { ImageIcon, Sparkles, ArrowLeft, X, Loader2, Lock } from "lucide-react";
 import { VoiceInput } from "@/components/ai/VoiceInput";
 import { LiveCaptureButton } from "@/components/ai/LiveCameraCapture";
 import { analyzeGarmentImage } from "@/lib/ai/image-understanding";
 import { useLocale } from "@/lib/context/locale-context";
+import { useAuth } from "@/lib/context/app-context";
 import { cn } from "@/lib/utils";
 
 const INSPIRATION_KEY = "st_inspiration_image";
@@ -15,6 +16,8 @@ const INSPIRATION_KEY = "st_inspiration_image";
 interface ConciergeInputProps {
   variant?: "hero" | "inline";
   className?: string;
+  /** When true, redirects unauthenticated users to login before any interaction */
+  requireAuth?: boolean;
   onSubmit?: (text: string, imageUrl?: string) => void;
   onImageAnalyzed?: (summary: string, dataUrl: string) => void;
 }
@@ -26,11 +29,13 @@ function buildImageSummary(analysis: Awaited<ReturnType<typeof analyzeGarmentIma
 export function ConciergeInput({
   variant = "inline",
   className,
+  requireAuth = false,
   onSubmit,
   onImageAnalyzed,
 }: ConciergeInputProps) {
   const { t } = useLocale();
   const router = useRouter();
+  const { isAuthenticated, authLoading } = useAuth();
   const [text, setText] = useState("");
   const [focused, setFocused] = useState(false);
   const [listening, setListening] = useState(false);
@@ -39,8 +44,32 @@ export function ConciergeInput({
   const [imageLabel, setImageLabel] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const gated = requireAuth && !authLoading && !isAuthenticated;
+
+  const redirectToLogin = useCallback(
+    (intent?: string) => {
+      const next = intent
+        ? `/customer/ai?q=${encodeURIComponent(intent)}`
+        : "/customer/ai";
+      router.push(`/login?redirect=${encodeURIComponent(next)}&signup=1`);
+    },
+    [router]
+  );
+
+  const guard = useCallback(
+    (intent?: string) => {
+      if (gated) {
+        redirectToLogin(intent);
+        return true;
+      }
+      return false;
+    },
+    [gated, redirectToLogin]
+  );
+
   const submit = (value?: string) => {
     const msg = (value ?? text).trim();
+    if (guard(msg || undefined)) return;
     if (!msg) return;
     if (onSubmit) {
       onSubmit(msg);
@@ -50,11 +79,13 @@ export function ConciergeInput({
   };
 
   const handleVoiceTranscript = (transcript: string) => {
+    if (guard(transcript)) return;
     setText(transcript);
     submit(transcript);
   };
 
   const processImageData = async (file: File, dataUrl: string) => {
+    if (guard()) return;
     setImagePreview(dataUrl);
     setAnalyzing(true);
     setImageLabel(null);
@@ -83,6 +114,7 @@ export function ConciergeInput({
   };
 
   const handleImageFile = async (file: File) => {
+    if (guard()) return;
     const reader = new FileReader();
     reader.onload = async () => {
       const dataUrl = reader.result as string;
@@ -92,6 +124,7 @@ export function ConciergeInput({
   };
 
   const handleLiveCapture = async (file: File, dataUrl: string) => {
+    if (guard()) return;
     await processImageData(file, dataUrl);
   };
 
@@ -106,7 +139,10 @@ export function ConciergeInput({
     }
   };
 
-  const openImagePicker = () => fileRef.current?.click();
+  const openImagePicker = () => {
+    if (guard()) return;
+    fileRef.current?.click();
+  };
 
   const isHero = variant === "hero";
 
@@ -135,13 +171,24 @@ export function ConciergeInput({
           isHero
             ? "bg-white/95 shadow-[0_24px_80px_-20px_rgba(7,26,51,0.35)] border-white/20 p-2"
             : "bg-white border-border/60 p-1.5",
-          focused && "border-primary/40 ring-4 ring-primary/5",
-          listening && "border-primary/50 ring-4 ring-primary/10"
+          focused && !gated && "border-primary/40 ring-4 ring-primary/5",
+          listening && !gated && "border-primary/50 ring-4 ring-primary/10",
+          gated && "ring-2 ring-omani-gold/30"
         )}
       >
+        {gated && (
+          <button
+            type="button"
+            onClick={() => redirectToLogin()}
+            className="absolute inset-0 z-10 rounded-2xl cursor-pointer"
+            aria-label={t("سجّل دخولك للبدء", "Sign in to start")}
+          />
+        )}
         <div className="flex items-start gap-3 p-3 md:p-4">
           <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10">
-            {analyzing ? (
+            {gated ? (
+              <Lock className="h-4 w-4 text-omani-gold" />
+            ) : analyzing ? (
               <Loader2 className="h-4 w-4 text-primary animate-spin" />
             ) : (
               <Sparkles className="h-4 w-4 text-primary" />
@@ -150,17 +197,33 @@ export function ConciergeInput({
           <div className="flex-1 min-w-0 space-y-2">
             <textarea
               value={text}
-              onChange={(e) => setText(e.target.value)}
-              onFocus={() => setFocused(true)}
+              onChange={(e) => {
+                if (!gated) setText(e.target.value);
+              }}
+              onFocus={() => {
+                if (guard()) return;
+                setFocused(true);
+              }}
               onBlur={() => setFocused(false)}
               onKeyDown={(e) => {
+                if (gated) {
+                  e.preventDefault();
+                  guard();
+                  return;
+                }
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   submit();
                 }
               }}
+              readOnly={gated}
+              tabIndex={gated ? -1 : 0}
               rows={isHero ? 2 : 1}
-              placeholder={t("صف لي الثوب الذي تتخيله...", "Describe the garment you imagine...")}
+              placeholder={
+                gated
+                  ? t("سجّل دخولك لتصفّح ثوب أحلامك بالذكاء الاصطناعي...", "Sign in to describe your dream garment with AI...")
+                  : t("صف لي الثوب الذي تتخيله...", "Describe the garment you imagine...")
+              }
               className={cn(
                 "w-full resize-none bg-transparent outline-none font-arabic leading-relaxed placeholder:text-muted-foreground/70",
                 isHero ? "text-lg md:text-xl min-h-[56px]" : "text-base min-h-[40px]"
@@ -194,11 +257,12 @@ export function ConciergeInput({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-t border-border/40 px-3 py-2 md:px-4">
+        <div className={cn("flex items-center justify-between gap-2 border-t border-border/40 px-3 py-2 md:px-4", gated && "pointer-events-none opacity-80")}>
           <div className="flex items-center gap-1">
             <VoiceInput
               onTranscript={handleVoiceTranscript}
               onListeningChange={setListening}
+              disabled={gated}
               className="border-0 bg-transparent shadow-none hover:bg-muted/50"
             />
             <button
@@ -217,22 +281,22 @@ export function ConciergeInput({
             </button>
             <LiveCaptureButton
               onCapture={handleLiveCapture}
-              disabled={analyzing}
+              disabled={analyzing || gated}
               active={Boolean(imagePreview)}
             />
           </div>
           <button
             type="button"
-            onClick={() => submit()}
-            disabled={!text.trim() || analyzing}
+            onClick={() => (gated ? redirectToLogin() : submit())}
+            disabled={!gated && (!text.trim() || analyzing)}
             className={cn(
               "inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all",
-              text.trim() && !analyzing
+              gated || (text.trim() && !analyzing)
                 ? "bg-navy text-white hover:bg-navy-light"
                 : "bg-muted text-muted-foreground cursor-not-allowed"
             )}
           >
-            {t("ابدأ", "Start")}
+            {gated ? t("سجّل دخول", "Sign in") : t("ابدأ", "Start")}
             <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
           </button>
         </div>
@@ -240,7 +304,9 @@ export function ConciergeInput({
 
       {isHero && (
         <p className="mt-4 text-center text-sm text-white/50">
-          {t("قول الي في بالك ترانا بنفهمك..", "Say what's on your mind — we've got you..")}
+          {gated
+            ? t("أنشئ حساباً مجاناً — صوت، صورة، أو كتابة", "Create a free account — voice, photo, or text")
+            : t("قول الي في بالك ترانا بنفهمك..", "Say what's on your mind — we've got you..")}
         </p>
       )}
     </motion.div>

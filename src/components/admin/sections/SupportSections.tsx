@@ -367,7 +367,11 @@ export function SystemHealthSection({ health }: { health: SystemHealthData }) {
             <span className="text-sm font-medium text-navy">{t(svc.name_ar, svc.name_en)}</span>
             <span className="inline-flex items-center gap-1.5 text-xs">
               <span className={`h-2 w-2 rounded-full ${statusColor[svc.status]}`} />
-              {svc.status === "operational" ? t("تشغيل", "Operational") : svc.status}
+              {svc.status === "operational"
+                ? t("تشغيل", "Operational")
+                : svc.status === "warning"
+                  ? t("يحتاج إعداد", "Needs setup")
+                  : t("خطأ", "Error")}
             </span>
           </div>
         ))}

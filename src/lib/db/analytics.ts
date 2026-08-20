@@ -544,16 +544,28 @@ export async function getSystemHealth() {
     checks.push({ id: "db", name_ar: "قاعدة البيانات", name_en: "Database", status: "error" });
   }
 
-  const hasAiKey = Boolean(
-    process.env.OPENROUTER_API_KEY?.trim() ||
-      process.env.OPENAI_API_KEY?.trim() ||
-      process.env.GEMINI_API_KEY?.trim()
-  );
+  const { getQuickAIHealthStatus } = await import("@/lib/admin/system-status");
+  const { getTryOnProviderConfig } = await import("@/lib/ai/virtual-tryon");
+  const { getVisualizationConfig } = await import("@/lib/ai/innovation-visualization");
+
+  const aiHealth = await getQuickAIHealthStatus();
   checks.push({
     id: "ai",
     name_ar: "الذكاء الاصطناعي",
     name_en: "AI",
-    status: hasAiKey ? "operational" : "warning",
+    status: aiHealth,
+  });
+  checks.push({
+    id: "tryon",
+    name_ar: "التجربة الافتراضية",
+    name_en: "Virtual Try-On",
+    status: getTryOnProviderConfig().configured ? "operational" : "warning",
+  });
+  checks.push({
+    id: "innovation_viz",
+    name_ar: "معاينة الابتكار",
+    name_en: "Innovation Preview",
+    status: getVisualizationConfig().configured ? "operational" : "warning",
   });
 
   const hasAuth = isAuthConfigured();
