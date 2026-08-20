@@ -32,6 +32,7 @@ yarn-error.log*
 .env*.local
 .env
 .admin-credentials.local
+.env.railway
 
 # typescript
 *.tsbuildinfo
