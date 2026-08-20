@@ -1,5 +1,5 @@
 import type { StyleRecommendation } from "@/types";
-import { callLLMFromClient, extractJsonFromLLM } from "./provider";
+import { callLLMFromClient, extractJsonFromLLM, isRealAIProvider } from "./provider";
 
 function mockStyleRecommendation(prompt: string): StyleRecommendation {
   const lower = prompt.toLowerCase();
@@ -82,7 +82,7 @@ Use Arabic values for display fields. colorKey: white|navy|black|beige. fabricKe
 
   const { content, provider } = await callLLMFromClient(system, prompt);
 
-  if (content && provider && provider !== "mock") {
+  if (content && isRealAIProvider(provider)) {
     const parsed = extractJsonFromLLM<StyleLLMJson>(content);
     const fallback = mockStyleRecommendation(prompt);
     if (parsed) {

@@ -3,7 +3,7 @@ export { estimateMeasurements, runMeasurementScan, SCAN_STEPS } from "./measurem
 export { matchTailors, getBestMatch, filterTailors } from "./matching";
 export { recommendPrice } from "./pricing";
 export { forecastDemand, generateBusinessInsights } from "./forecasting";
-export { getAIConfig, callLLM, callLLMFromClient, callVisionFromClient, fetchAIStatus, extractJsonFromLLM } from "./provider";
+export { getAIConfig, callLLM, callLLMFromClient, callVisionFromClient, fetchAIStatus, extractJsonFromLLM, isRealAIProvider } from "./provider";
 export { conciergeRespond, applyNaturalLanguageDesign } from "./concierge";
 export { analyzeGarmentImage, analysisToDesignConfig, generateMarketingCampaign, generateProductFromHint, analyzeQualityImage } from "./image-understanding";
 export { buildStyleDNA } from "./style-dna";

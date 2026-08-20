@@ -38,7 +38,10 @@ function parseEnvFile(content) {
 
 function serializeEnv(map) {
   const order = [
-    "# ─── Supabase (REQUIRED) ───",
+    "# ─── PostgreSQL (Railway) ───",
+    "DATABASE_URL",
+    "",
+    "# ─── Supabase (REQUIRED for Auth) ───",
     "NEXT_PUBLIC_SUPABASE_URL",
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "SUPABASE_SERVICE_ROLE_KEY",
@@ -123,7 +126,7 @@ async function main() {
   if (!map.has("OPENROUTER_API_KEY") && existing.includes("OPENROUTER_API_KEY")) {
     /* preserved via parseEnvFile */
   }
-  if (!map.has("NEXT_PUBLIC_APP_URL")) map.set("NEXT_PUBLIC_APP_URL", "http://localhost:3000");
+  if (!map.has("NEXT_PUBLIC_APP_URL")) map.set("NEXT_PUBLIC_APP_URL", "https://kytk.online");
   if (!map.has("OPENROUTER_MODEL")) map.set("OPENROUTER_MODEL", "openai/gpt-4o-mini");
   if (!map.has("OPENROUTER_VISION_MODEL")) map.set("OPENROUTER_VISION_MODEL", "openai/gpt-4o-mini");
 

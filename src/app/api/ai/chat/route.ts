@@ -19,12 +19,19 @@ export async function POST(request: Request) {
     const config = getAIConfig();
     const result = await callLLM(systemPrompt, userPrompt);
 
+    const keyIssue =
+      config.provider === "openrouter" &&
+      result.error?.includes("Management/Provisioning")
+        ? "management_key"
+        : null;
+
     return NextResponse.json({
       content: result.content,
       provider: result.provider,
       model: result.model ?? config.model ?? null,
       mock: result.provider === "unconfigured" || !result.content,
       error: result.error ?? null,
+      keyIssue,
     });
   } catch {
     return NextResponse.json({ error: "AI request failed" }, { status: 500 });

@@ -1,5 +1,5 @@
 import type { DesignConfig } from "@/types";
-import { callLLMFromClient } from "./provider";
+import { callLLMFromClient, isRealAIProvider } from "./provider";
 import { extractFashionIntent, formatIntentReply, intentToDesignConfig } from "./intent";
 
 export interface NLDesignChange {
@@ -132,7 +132,7 @@ export async function conciergeRespond(
     `${context}العميل: ${message}\n\nملخص النية المستخرجة:\n${intentSummary}`
   );
 
-  if (llm && provider && provider !== "mock") {
+  if (llm && isRealAIProvider(provider)) {
     return {
       reply: llm,
       suggestedActions: ["أنشئ التصميم", "غيّر القماش", "أرني خيارات", "ابحث عن خياط"],

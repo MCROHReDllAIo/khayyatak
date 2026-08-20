@@ -14,11 +14,29 @@ const inter = Inter({
 });
 
 import { BRAND, brandTitle } from "@/lib/constants/brand";
+import { SITE, getSiteOrigin } from "@/lib/constants/site";
 
 export const metadata: Metadata = {
+  metadataBase: getSiteOrigin(),
   title: brandTitle("ar"),
   description: `${BRAND.taglineAr} ${BRAND.descriptionAr}`,
   icons: { icon: "/favicon.svg" },
+  openGraph: {
+    title: brandTitle("ar"),
+    description: BRAND.taglineAr,
+    url: SITE.productionUrl,
+    siteName: BRAND.nameAr,
+    locale: "ar_OM",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: brandTitle("ar"),
+    description: BRAND.taglineAr,
+  },
+  alternates: {
+    canonical: "/",
+  },
 };
 
 export default function RootLayout({

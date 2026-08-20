@@ -1,3 +1,5 @@
+import { getAppUrl } from "@/lib/constants/site";
+
 export type AIProvider = "openrouter" | "openai" | "gemini" | "unconfigured";
 
 export interface AIConfig {
@@ -44,6 +46,31 @@ export function getAIConfig(): AIConfig {
   return { provider: "unconfigured" };
 }
 
+export function isRealAIProvider(provider?: string | null): boolean {
+  return Boolean(provider && provider !== "unconfigured" && provider !== "mock");
+}
+
+let openRouterKeyCache: { key: string; valid: boolean; error?: string; checkedAt: number } | null = null;
+
+async function ensureOpenRouterInferenceKey(apiKey: string): Promise<{ valid: boolean; error?: string }> {
+  const now = Date.now();
+  if (
+    openRouterKeyCache &&
+    openRouterKeyCache.key === apiKey &&
+    now - openRouterKeyCache.checkedAt < 5 * 60 * 1000
+  ) {
+    return { valid: openRouterKeyCache.valid, error: openRouterKeyCache.error };
+  }
+  const inspection = await inspectOpenRouterKey(apiKey);
+  openRouterKeyCache = {
+    key: apiKey,
+    valid: inspection.valid,
+    error: inspection.error,
+    checkedAt: now,
+  };
+  return { valid: inspection.valid, error: inspection.error };
+}
+
 type ChatMessage =
   | { role: "system" | "user" | "assistant"; content: string }
   | {
@@ -70,7 +97,7 @@ async function callChatCompletions(
     };
 
     if (config.provider === "openrouter") {
-      headers["HTTP-Referer"] = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      headers["HTTP-Referer"] = getAppUrl();
       headers["X-Title"] = "Khayyatak";
     }
 
@@ -131,6 +158,17 @@ export async function callLLM(
     };
   }
 
+  if (config.provider === "openrouter" && config.apiKey) {
+    const keyCheck = await ensureOpenRouterInferenceKey(config.apiKey);
+    if (!keyCheck.valid) {
+      return {
+        content: null,
+        provider: "openrouter",
+        error: keyCheck.error ?? "Invalid OpenRouter key",
+      };
+    }
+  }
+
   if (config.provider === "gemini" && config.apiKey) {
     try {
       const res = await fetch(
@@ -186,6 +224,17 @@ export async function callLLMWithVision(
       provider: "unconfigured",
       error: "AI image analysis is unavailable because no vision provider is configured.",
     };
+  }
+
+  if (config.provider === "openrouter") {
+    const keyCheck = await ensureOpenRouterInferenceKey(config.apiKey);
+    if (!keyCheck.valid) {
+      return {
+        content: null,
+        provider: "openrouter",
+        error: keyCheck.error ?? "Invalid OpenRouter key",
+      };
+    }
   }
 
   return callChatCompletions(

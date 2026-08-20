@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { GarmentPreview } from "@/components/designer/GarmentPreview";
 import { ConciergeInput } from "@/components/ai/ConciergeInput";
+import { AIStatusBanner } from "@/components/ai/AIStatusBadge";
 import { GeometricPattern } from "@/components/ui/GeometricPattern";
 import { TailorCard } from "@/components/tailor/TailorCard";
 import { useLocale } from "@/lib/context/locale-context";
@@ -133,6 +134,7 @@ export default function HomePage() {
           </motion.div>
 
           <div className="mt-10 md:mt-14 max-w-2xl mx-auto">
+            <AIStatusBanner />
             <ConciergeInput variant="hero" />
           </div>
 

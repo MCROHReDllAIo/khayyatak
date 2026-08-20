@@ -12,7 +12,9 @@ export const BRAND = {
   aiAssistantEn: "Khayyatak AI",
   marketplaceAr: "سوق خياطك",
   marketplaceEn: "Khayyatak Marketplace",
-  copyright: "© 2025 خياطك",
+  copyright: "© 2026 خياطك",
+  domain: "kytk.online",
+  url: "https://kytk.online",
 } as const;
 
 export function brandTitle(locale: "ar" | "en" = "ar") {

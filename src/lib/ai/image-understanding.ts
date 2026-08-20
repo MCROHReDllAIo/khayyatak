@@ -1,4 +1,4 @@
-import { callVisionFromClient, callLLMFromClient, extractJsonFromLLM } from "./provider";
+import { callVisionFromClient, callLLMFromClient, extractJsonFromLLM, isRealAIProvider } from "./provider";
 
 export interface ImageAnalysisResult {
   garmentType: string;
@@ -94,7 +94,7 @@ Use Arabic for descriptive values.`;
 
   const { content, provider } = await callVisionFromClient(system, userPrompt, imageData);
 
-  if (content && provider && provider !== "mock") {
+  if (content && isRealAIProvider(provider)) {
     const parsed = extractJsonFromLLM<VisionJson>(content);
     if (parsed) {
       return {
@@ -131,7 +131,7 @@ Return JSON: {"name":"","offer":"","message_ar":""} — message_ar is WhatsApp-r
     `Audience: ${audience}. Create a reorder/loyalty campaign for Ramadan or formal season.`
   );
 
-  if (content && provider && provider !== "mock") {
+  if (content && isRealAIProvider(provider)) {
     const parsed = extractJsonFromLLM<{ name?: string; offer?: string; message_ar?: string }>(content);
     if (parsed?.message_ar) {
       return {
@@ -168,7 +168,7 @@ Price in OMR as string like "18.500". Arabic text.`;
     hint ?? "دشداشة عمانية رسمية بيضاء كتان فاخر تطريز ذهبي"
   );
 
-  if (content && provider && provider !== "mock") {
+  if (content && isRealAIProvider(provider)) {
     const parsed = extractJsonFromLLM<{
       name_ar?: string;
       description_ar?: string;
@@ -209,7 +209,7 @@ Never claim certified QC. Be honest — AI Estimate only.`;
     imageDataUrl
   );
 
-  if (content && provider && provider !== "mock") {
+  if (content && isRealAIProvider(provider)) {
     const parsed = extractJsonFromLLM<{
       pass_score?: number;
       issue_ar?: string;
