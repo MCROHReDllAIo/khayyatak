@@ -3,6 +3,9 @@ import { getAIConfig, inspectOpenRouterKey, testAIConnection } from "@/lib/ai/pr
 import { getTryOnProviderConfig } from "@/lib/ai/virtual-tryon";
 import { getVisualizationConfig } from "@/lib/ai/innovation-visualization";
 import { isPostgresConfigured } from "@/lib/db/postgres";
+import { isEmbeddingsConfigured } from "@/lib/ml/embeddings";
+import { countProductEmbeddings } from "@/lib/ml/product-embeddings-db";
+import { STYLE_TWIN_EMBEDDING_MODEL } from "@/lib/ml/types";
 
 export type FeatureStatus = "ready" | "needs_config" | "misconfigured" | "offline";
 
@@ -28,6 +31,11 @@ export interface SystemStatusPayload {
     keyIssue?: string | null;
     error?: string | null;
   };
+  styleTwin?: {
+    configured: boolean;
+    indexedCount: number;
+    model: string;
+  };
 }
 
 export async function getSystemStatusPayload(): Promise<SystemStatusPayload> {
@@ -36,6 +44,13 @@ export async function getSystemStatusPayload(): Promise<SystemStatusPayload> {
   const innovation = getVisualizationConfig();
   const authProvider = getAuthProvider();
   const dbConfigured = isPostgresConfigured();
+  const embeddingsOk = isEmbeddingsConfigured();
+  let indexedCount = 0;
+  try {
+    indexedCount = await countProductEmbeddings();
+  } catch {
+    indexedCount = 0;
+  }
 
   const features: SystemFeatureCheck[] = [
     {
@@ -78,6 +93,30 @@ export async function getSystemStatusPayload(): Promise<SystemStatusPayload> {
       setupUrl: "https://openrouter.ai/keys",
     },
     {
+      id: "style_twin",
+      name_ar: "توأم الأسلوب (ML)",
+      name_en: "Style Twin ML",
+      status: !embeddingsOk
+        ? "needs_config"
+        : !dbConfigured
+          ? "needs_config"
+          : indexedCount > 0
+            ? "ready"
+            : "offline",
+      detail_ar: !embeddingsOk
+        ? "يحتاج OPENROUTER_API_KEY للـ embeddings"
+        : indexedCount > 0
+          ? `مفهرس: ${indexedCount} منتج · ${STYLE_TWIN_EMBEDDING_MODEL}`
+          : "شغّل npm run ml:index-products لفهرسة المنتجات",
+      detail_en: !embeddingsOk
+        ? "Needs OPENROUTER_API_KEY for embeddings"
+        : indexedCount > 0
+          ? `Indexed: ${indexedCount} products · ${STYLE_TWIN_EMBEDDING_MODEL}`
+          : "Run npm run ml:index-products to index products",
+      envKey: "OPENROUTER_EMBEDDING_MODEL",
+      setupUrl: "https://openrouter.ai/docs",
+    },
+    {
       id: "virtual_tryon",
       name_ar: "التجربة الافتراضية",
       name_en: "Virtual Try-On",
@@ -110,6 +149,11 @@ export async function getSystemStatusPayload(): Promise<SystemStatusPayload> {
       connected: Boolean(aiTest.content),
       keyIssue: aiTest.keyIssue ?? null,
       error: aiTest.error ?? null,
+    },
+    styleTwin: {
+      configured: embeddingsOk,
+      indexedCount,
+      model: STYLE_TWIN_EMBEDDING_MODEL,
     },
   };
 }

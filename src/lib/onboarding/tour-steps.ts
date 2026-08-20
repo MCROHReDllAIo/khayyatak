@@ -1,14 +1,14 @@
 import type { TourStep } from "./types";
 
-/** Main home tour — grouped steps. Welcome screen is separate (TourWelcome). */
+/** Main home tour — stores-first layout with floating AI. */
 export const MAIN_TOUR_STEPS: TourStep[] = [
   {
     id: "home",
     target: "[data-tour='home-split']",
     titleAr: "كل شيء يبدأ من هنا",
     titleEn: "Everything starts here",
-    bodyAr: "على اليمين تكتشف الخياطين والمتاجر الحقيقية. وعلى اليسار تخبر الذكاء الاصطناعي بما تبحث عنه.",
-    bodyEn: "On the right: real tailors and stores. On the left: tell AI what you're looking for.",
+    bodyAr: "المتاجر هي محور خياطك. تصفّح الخياطين الحقيقيين، واستعن بالذكاء عند الحاجة من الزر العائم.",
+    bodyEn: "Stores are the heart of Khayyatak. Browse real tailors, and open AI from the floating button when you need it.",
     placement: "auto",
   },
   {
@@ -19,7 +19,6 @@ export const MAIN_TOUR_STEPS: TourStep[] = [
     bodyAr: "استعرض المتاجر المسجّلة، أعمالهم، تخصصاتهم، وتقييماتهم — كلها من قاعدة بيانات حقيقية.",
     bodyEn: "Browse registered stores, their work, specialties, and ratings — all from the real database.",
     placement: "auto",
-    mobileTab: "stores",
   },
   {
     id: "store-card",
@@ -29,19 +28,18 @@ export const MAIN_TOUR_STEPS: TourStep[] = [
     bodyAr: "كل بطاقة تمثل متجرًا حقيقيًا. اضغط «زيارة المتجر» لترى المنتجات والأقمشة والأعمال.",
     bodyEn: "Each card is a real store. Tap Visit store to see products, fabrics, and portfolio.",
     placement: "auto",
-    mobileTab: "stores",
     caveatAr: "إن لم تنضم متاجر بعد، ستظهر حالة فارغة صادقة — ولا نعرض متاجر وهمية.",
     caveatEn: "If no stores have joined yet, you'll see an honest empty state — we never invent stores.",
   },
   {
     id: "ai",
-    target: "[data-tour='home-ai']",
-    titleAr: "تحدث مع خياطك",
-    titleEn: "Talk to Khayyatak",
-    bodyAr: "ما تحتاج تعرف اسم القماش أو القصة. قل للذكاء ماذا تريد بطريقتك.",
-    bodyEn: "You don't need fabric jargon. Tell AI what you want in your own words.",
+    target: "[data-tour='home-ai-fab']",
+    titleAr: "مستشارك الذكي",
+    titleEn: "Your AI concierge",
+    bodyAr: "الذكاء موجود كزر عائم واضح — لا يسرق مساحة المتاجر. اضغطه لفتح تجربة البحث الذكي.",
+    bodyEn: "AI lives as a clear floating button — it doesn’t steal store space. Tap to open smart search.",
     placement: "auto",
-    mobileTab: "ai",
+    openAi: false,
   },
   {
     id: "ai-demo",
@@ -51,7 +49,7 @@ export const MAIN_TOUR_STEPS: TourStep[] = [
     bodyAr: "مثال: «أبغى دشداشة بيضاء رسمية وصيفية» — يفهم الطلب ويبحث في المنتجات والمتاجر الحقيقية.",
     bodyEn: "Example: “I want a formal summer white dishdasha” — it understands and searches real products and stores.",
     placement: "auto",
-    mobileTab: "ai",
+    openAi: true,
     demo: "ai-search",
   },
   {
@@ -62,7 +60,7 @@ export const MAIN_TOUR_STEPS: TourStep[] = [
     bodyAr: "ارفع صورة للإلهام، أو تكلم بصوتك، أو ادخل ابتكار لتصميم من الصفر.",
     bodyEn: "Upload inspiration, speak with voice, or open Innovate to design from scratch.",
     placement: "auto",
-    mobileTab: "ai",
+    openAi: true,
     caveatAr: "الجولة لا تطلب الميكروفون تلقائيًا — يُطلب فقط عند تفعيل الصوت بنفسك.",
     caveatEn: "This tour never requests the microphone — only when you activate Voice yourself.",
   },
@@ -74,7 +72,7 @@ export const MAIN_TOUR_STEPS: TourStep[] = [
     bodyAr: "ما لقيت شيء يعجبك؟ ابتكر تصميمك مع الذكاء: فكرة → تعديل → معاينة → إرسال للخياط.",
     bodyEn: "Nothing fits? Create with AI: idea → refine → preview → send to tailor.",
     placement: "auto",
-    mobileTab: "ai",
+    openAi: true,
     demo: "design-collab",
     caveatAr: "معاينة التصميم ليست منتج سوق، وليست ضمان تصنيع.",
     caveatEn: "Design preview is not a marketplace product and not a manufacturing guarantee.",
@@ -105,8 +103,8 @@ export const MAIN_TOUR_STEPS: TourStep[] = [
     id: "finish",
     titleAr: "جاهز تبدأ؟",
     titleEn: "Ready to begin?",
-    bodyAr: "فكرتك تبدأ منك. اكتشف المتاجر، تحدّث مع الذكاء، أو ابتكر تصميمك.",
-    bodyEn: "Your idea starts with you. Browse stores, talk to AI, or invent your design.",
+    bodyAr: "فكرتك تبدأ منك. اكتشف المتاجر، وافتح مستشارك الذكي متى احتجت.",
+    bodyEn: "Your idea starts with you. Explore stores, and open AI whenever you need it.",
     placement: "center",
     demo: "summary",
   },

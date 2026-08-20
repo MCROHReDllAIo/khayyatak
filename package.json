@@ -18,7 +18,8 @@
     "test:ai": "node scripts/test-ai.mjs",
     "seed:admin": "node scripts/seed-admin.mjs",
     "seed:products": "node scripts/seed-products.mjs",
-    "purge:stock-images": "node scripts/purge-stock-product-images.mjs"
+    "purge:stock-images": "node scripts/purge-stock-product-images.mjs",
+    "ml:index-products": "node scripts/ml-index-products.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

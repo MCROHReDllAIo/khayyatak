@@ -5,13 +5,14 @@
 
 ## Overview
 
-Premium interactive walkthrough for first-time visitors to the home split experience (AI × Stores).
+Premium interactive walkthrough for first-time visitors to the stores-first home (floating AI concierge).
 
 - Optional welcome: **ابدأ الجولة** / **استكشف بنفسي**
 - Spotlight targets real DOM via `data-tour="..."`
 - Persists for authenticated users in Postgres; guests use `localStorage`
 - Never creates fake products, stores, or orders
 - Honest caveats when features may be unconfigured (Virtual Look, 3D, mic)
+- AI sheet opens/closes via `openAi` on steps (`kytk-open-ai` / provider callbacks)
 
 ## Components
 
@@ -23,17 +24,18 @@ Premium interactive walkthrough for first-time visitors to the home split experi
 | `Spotlight` | `src/components/onboarding/Spotlight.tsx` |
 | `TourProgress` / demos | `src/components/onboarding/TourProgress.tsx` |
 | `FeatureTutorial` | `src/components/onboarding/FeatureTutorial.tsx` |
+| `HomeAIConcierge` | `src/components/home/HomeAIConcierge.tsx` |
 
 ## Tour steps (targets)
 
 | # | Step id | Target | Notes |
 |---|---------|--------|-------|
 | — | welcome | full-screen | `TourWelcome` (before tour) |
-| 1 | `home` | `[data-tour=home-split]` | Split layout |
-| 2 | `stores` | `[data-tour=home-stores]` | Marketplace panel |
+| 1 | `home` | `[data-tour=home-split]` | Brand + stores-first hero |
+| 2 | `stores` | `[data-tour=home-stores]` | Full-width marketplace |
 | 3 | `store-card` | `[data-tour=home-store-card]` | First card or empty state |
-| 4 | `ai` | `[data-tour=home-ai]` | AI panel |
-| 5 | `ai-demo` | `[data-tour=home-ai-input]` | Demo search animation (no DB write) |
+| 4 | `ai` | `[data-tour=home-ai-fab]` | Floating AI launcher |
+| 5 | `ai-demo` | `[data-tour=home-ai-input]` | Opens sheet; demo search (no DB write) |
 | 6 | `media` | `[data-tour=home-ai-controls]` | Voice / photo / innovate — no auto mic |
 | 7 | `innovate` | `[data-tour=home-innovate]` | Design collab demo |
 | 8 | `design` | center | Measurements / virtual / tailor feasibility caveats |

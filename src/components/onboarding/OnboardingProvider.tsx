@@ -186,16 +186,22 @@ export function useOnboardingTour({ onStepEnter, autoStart = true }: UseOnboardi
 
 export function OnboardingProvider({
   onMobileTab,
+  onOpenAi,
+  onCloseAi,
   children,
 }: {
   onMobileTab?: (tab: "ai" | "stores") => void;
+  onOpenAi?: () => void;
+  onCloseAi?: () => void;
   children?: React.ReactNode;
 }) {
   const handleStepEnter = useCallback(
     (step: TourStep) => {
       if (step.mobileTab) onMobileTab?.(step.mobileTab);
+      if (step.openAi) onOpenAi?.();
+      else onCloseAi?.();
     },
-    [onMobileTab]
+    [onMobileTab, onOpenAi, onCloseAi]
   );
 
   const tour = useOnboardingTour({ onStepEnter: handleStepEnter });

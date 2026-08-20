@@ -8,6 +8,7 @@ import { ArrowLeft, ImageIcon, Loader2, Mic, Sparkles, Wand2 } from "lucide-reac
 import { useLocale } from "@/lib/context/locale-context";
 import { useAuth } from "@/lib/context/app-context";
 import { ChatProductCard } from "@/components/ai/ChatProductCard";
+import { StyleTwinResults, type StyleTwinMatchCard } from "@/components/ml/StyleTwinResults";
 import { generateId, cn } from "@/lib/utils";
 import { extractProductSearchIntent, type ProductSearchIntent } from "@/lib/ai/product-intent";
 import type { MatchedProduct } from "@/lib/db/products";
@@ -26,21 +27,26 @@ type ChatMsg = {
   role: "user" | "assistant";
   content: string;
   products?: MatchedProduct[];
+  styleTwin?: StyleTwinMatchCard[];
+  styleTwinMeta?: { blocked?: boolean; empty?: boolean; error?: string | null };
 };
 
 interface HomeAIPanelProps {
   selectedStore: Tailor | null;
   onIntentChange: (intent: ProductSearchIntent | null, highlightTailorIds: string[]) => void;
   onClearStore?: () => void;
+  /** Inside floating sheet — tighter chrome */
+  embedded?: boolean;
 }
 
-export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: HomeAIPanelProps) {
+export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore, embedded }: HomeAIPanelProps) {
   const { t, locale } = useLocale();
   const { isAuthenticated, authLoading } = useAuth();
   const router = useRouter();
   const [text, setText] = useState("");
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [loading, setLoading] = useState(false);
+  const [styleTwinLoading, setStyleTwinLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [context, setContext] = useState<ConciergeShoppingContext>({});
   const fileRef = useRef<HTMLInputElement>(null);
@@ -49,7 +55,7 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
 
   useEffect(() => {
     scrollerRef.current?.scrollTo({ top: scrollerRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages, loading]);
+  }, [messages, loading, styleTwinLoading]);
 
   const redirectLogin = useCallback(
     (intent?: string) => {
@@ -57,6 +63,54 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
       router.push(`/login?redirect=${encodeURIComponent(next)}&signup=1`);
     },
     [router]
+  );
+
+  const runStyleTwin = useCallback(
+    async (imageDataUrl: string | undefined, queryText: string): Promise<{
+      matches: StyleTwinMatchCard[];
+      blocked?: boolean;
+      empty?: boolean;
+      error?: string | null;
+      tailorIds: string[];
+    }> => {
+      setStyleTwinLoading(true);
+      try {
+        const res = await fetch("/api/ml/style-twin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            imageDataUrl,
+            text: queryText || undefined,
+            limit: 6,
+          }),
+        });
+        const data = await res.json();
+        if (data.blocked) {
+          return {
+            matches: [],
+            blocked: true,
+            error: data.errorAr || data.error || null,
+            tailorIds: [],
+          };
+        }
+        const matches = (data.matches ?? []) as StyleTwinMatchCard[];
+        return {
+          matches,
+          empty: matches.length === 0,
+          error: data.ok === false ? data.errorAr || data.error || null : null,
+          tailorIds: matches.map((m) => m.tailor_id).filter(Boolean),
+        };
+      } catch {
+        return {
+          matches: [],
+          error: t("تعذر تشغيل توأم الأسلوب", "Style Twin failed"),
+          tailorIds: [],
+        };
+      } finally {
+        setStyleTwinLoading(false);
+      }
+    },
+    [t]
   );
 
   const send = useCallback(
@@ -83,31 +137,56 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
       setMessages((m) => [...m, userMsg]);
       setText("");
       setLoading(true);
+      const useTwin = Boolean(imageDataUrl) || /مشابه|شبيه|صورة|similar|twin|توأم/i.test(message);
+      if (useTwin) setStyleTwinLoading(true);
 
       try {
         const storeHint = selectedStore
           ? `\n[سياق المتجر: ${selectedStore.name_ar} / ${selectedStore.city}]`
           : "";
-        const res = await fetch("/api/concierge/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: `${message}${storeHint}`,
-            imageDataUrl,
-            context: {
-              ...context,
-              lastIntent: intent,
-            },
-          }),
-        });
-        const data = await res.json();
-        const products: MatchedProduct[] = data.products ?? data.matches ?? [];
+
+        // Text-only Style Twin path (embeddings) when user asks for similar style without photo
+        const twinOnly =
+          useTwin && !imageDataUrl
+            ? await runStyleTwin(undefined, message)
+            : null;
+
+        const data = imageDataUrl || !twinOnly
+          ? await fetch("/api/concierge/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: `${message || "أبغى شيء مشابه لهذه الصورة"}${storeHint}`,
+                imageDataUrl,
+                context: {
+                  ...context,
+                  lastIntent: intent,
+                },
+              }),
+            }).then((res) => res.json())
+          : null;
+
+        const twinFromApi = data?.styleTwin;
+        const twinMatches: StyleTwinMatchCard[] =
+          twinOnly?.matches?.length
+            ? twinOnly.matches
+            : ((twinFromApi?.matches ?? []) as StyleTwinMatchCard[]);
+        const twinBlocked = twinOnly?.blocked || twinFromApi?.blocked;
+        const twinError =
+          twinOnly?.error || twinFromApi?.errorAr || twinFromApi?.error || null;
+
+        const productList: MatchedProduct[] = data?.products ?? data?.matches ?? [];
         const reply =
-          data.reply ??
-          data.message ??
-          (products.length
-            ? t(`لقيت لك ${products.length} خيارات مناسبة.`, `Found ${products.length} matching options.`)
-            : t("لم نجد منتجات مطابقة.", "No matching products found."));
+          twinMatches.length > 0
+            ? t(
+                `وجد توأم أسلوبك ${twinMatches.length} خيارات من المتاجر الحقيقية.`,
+                `Style Twin found ${twinMatches.length} real-store matches.`
+              )
+            : data?.reply ??
+              data?.message ??
+              (productList.length
+                ? t(`لقيت لك ${productList.length} خيارات مناسبة.`, `Found ${productList.length} matching options.`)
+                : t("لم نجد منتجات مطابقة.", "No matching products found."));
 
         setMessages((m) => [
           ...m,
@@ -115,14 +194,25 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
             id: generateId(),
             role: "assistant",
             content: reply,
-            products,
+            products: twinMatches.length ? undefined : productList,
+            styleTwin: twinMatches.length ? twinMatches : undefined,
+            styleTwinMeta: useTwin
+              ? {
+                  blocked: Boolean(twinBlocked),
+                  empty: Boolean(!twinBlocked && twinMatches.length === 0),
+                  error: twinError,
+                }
+              : undefined,
           },
         ]);
 
-        if (data.context) setContext(data.context);
-        const nextIntent = (data.context?.lastIntent as ProductSearchIntent | undefined) ?? intent;
-        const tailorIds = products.map((p) => p.tailor_id).filter(Boolean);
-        onIntentChange(nextIntent, tailorIds);
+        if (data?.context) setContext(data.context);
+        const nextIntent = (data?.context?.lastIntent as ProductSearchIntent | undefined) ?? intent;
+        const tailorIds = [
+          ...twinMatches.map((x) => x.tailor_id),
+          ...productList.map((p) => p.tailor_id).filter(Boolean),
+        ];
+        onIntentChange(nextIntent, [...new Set(tailorIds)]);
       } catch {
         setMessages((m) => [
           ...m,
@@ -134,9 +224,19 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
         ]);
       } finally {
         setLoading(false);
+        setStyleTwinLoading(false);
       }
     },
-    [authLoading, isAuthenticated, redirectLogin, context, selectedStore, onIntentChange, t]
+    [
+      authLoading,
+      isAuthenticated,
+      redirectLogin,
+      context,
+      selectedStore,
+      onIntentChange,
+      t,
+      runStyleTwin,
+    ]
   );
 
   const startVoice = () => {
@@ -199,29 +299,43 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
   const empty = messages.length === 0;
 
   return (
-    <section className="flex h-full min-h-0 flex-col" data-tour="home-ai">
-      <header className="shrink-0 pb-4">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
-          {t("مستشارك الذكي", "Your AI stylist")}
-        </p>
-        <h2 className="mt-1 text-2xl md:text-3xl font-bold text-white tracking-tight">
-          {t("الذكاء", "Intelligence")}
-        </h2>
-        <p className="mt-1 text-sm text-white/55">
-          {t("قل لي ماذا تريد، وأنا أبحث لك.", "Tell me what you want — I'll find it.")}
-        </p>
-        {selectedStore && (
-          <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
-            <span>
-              {t("تستكشف الآن:", "Exploring:")}{" "}
-              <strong className="text-omani-gold">{selectedStore.name_ar}</strong>
-            </span>
-            <button type="button" onClick={onClearStore} className="text-white/50 hover:text-white">
-              {t("إلغاء", "Clear")}
-            </button>
-          </div>
-        )}
-      </header>
+    <section className="flex h-full min-h-0 flex-col" data-tour="home-ai-panel">
+      {!embedded && (
+        <header className="shrink-0 pb-4">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
+            {t("مستشارك الذكي", "Your AI stylist")}
+          </p>
+          <h2 className="mt-1 text-2xl md:text-3xl font-bold text-white tracking-tight">
+            {t("الذكاء", "Intelligence")}
+          </h2>
+          <p className="mt-1 text-sm text-white/55">
+            {t("قل لي ماذا تريد، وأنا أبحث لك.", "Tell me what you want — I'll find it.")}
+          </p>
+          {selectedStore && (
+            <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80">
+              <span>
+                {t("تستكشف الآن:", "Exploring:")}{" "}
+                <strong className="text-omani-gold">{selectedStore.name_ar}</strong>
+              </span>
+              <button type="button" onClick={onClearStore} className="text-white/50 hover:text-white">
+                {t("إلغاء", "Clear")}
+              </button>
+            </div>
+          )}
+        </header>
+      )}
+
+      {embedded && selectedStore && (
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 shrink-0">
+          <span>
+            {t("تستكشف:", "Exploring:")}{" "}
+            <strong className="text-omani-gold">{selectedStore.name_ar}</strong>
+          </span>
+          <button type="button" onClick={onClearStore} className="text-white/50 hover:text-white">
+            {t("إلغاء", "Clear")}
+          </button>
+        </div>
+      )}
 
       <div ref={scrollerRef} className="min-h-0 flex-1 overflow-y-auto space-y-3 pe-1 pb-3">
         {empty && (
@@ -239,6 +353,12 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
                 </button>
               ))}
             </div>
+            <p className="text-[11px] text-omani-gold/70">
+              {t(
+                "أو ارفع صورة — توأم الأسلوب يطابقها مع متاجر حقيقية.",
+                "Or upload a photo — Style Twin matches it to real stores."
+              )}
+            </p>
           </div>
         )}
 
@@ -259,6 +379,17 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
                 )}
               >
                 <p className="whitespace-pre-wrap">{msg.content}</p>
+                {msg.styleTwinMeta && (msg.styleTwin || msg.styleTwinMeta.blocked || msg.styleTwinMeta.empty) && (
+                  <div className="mt-3">
+                    <StyleTwinResults
+                      matches={msg.styleTwin ?? []}
+                      blocked={msg.styleTwinMeta.blocked}
+                      empty={msg.styleTwinMeta.empty}
+                      error={msg.styleTwinMeta.error}
+                      onHighlightStores={(ids) => onIntentChange(context.lastIntent ?? null, ids)}
+                    />
+                  </div>
+                )}
                 {msg.products && msg.products.length > 0 && (
                   <div className="mt-3 space-y-3">
                     {msg.products.map((p) => (
@@ -271,10 +402,17 @@ export function HomeAIPanel({ selectedStore, onIntentChange, onClearStore }: Hom
           ))}
         </AnimatePresence>
 
-        {loading && (
-          <div className="flex items-center gap-2 text-xs text-white/50">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            {t("جاري البحث في المتاجر الحقيقية...", "Searching real stores...")}
+        {(loading || styleTwinLoading) && (
+          <div className="space-y-2">
+            {styleTwinLoading && (
+              <StyleTwinResults matches={[]} loading />
+            )}
+            {loading && !styleTwinLoading && (
+              <div className="flex items-center gap-2 text-xs text-white/50">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                {t("جاري البحث في المتاجر الحقيقية...", "Searching real stores...")}
+              </div>
+            )}
           </div>
         )}
       </div>

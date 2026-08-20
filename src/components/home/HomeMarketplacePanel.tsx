@@ -116,20 +116,20 @@ export function HomeMarketplacePanel({
 
       <div className="min-h-0 flex-1 overflow-y-auto pt-4 pe-1">
         {loading ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="h-64 animate-pulse rounded-2xl bg-muted/60" />
             ))}
           </div>
         ) : ranked.length === 0 ? (
           <div
             data-tour="home-store-card"
-            className="flex h-full min-h-[280px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-white/60 px-6 text-center"
+            className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-2xl border border-dashed border-border/70 bg-white/70 px-6 text-center"
           >
             <p className="text-base font-semibold text-navy">
               {t("ستظهر المتاجر هنا عند انضمامها إلى خياطك.", "Stores will appear here as they join Khayyatak.")}
             </p>
-            <p className="mt-2 text-sm text-muted-foreground max-w-sm">
+            <p className="mt-2 text-sm text-muted-foreground max-w-md">
               {t(
                 "لا نعرض متاجر وهمية. كن أول من يكتشف المنصة.",
                 "We never invent stores. Be among the first to explore."
@@ -137,7 +137,7 @@ export function HomeMarketplacePanel({
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-2 pb-8">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 pb-8">
             {ranked.map(({ tailor, badges, highlighted }, idx) => (
               <div key={tailor.id} {...(idx === 0 ? { "data-tour": "home-store-card" } : {})}>
                 <HomeStoreCard

@@ -123,5 +123,20 @@ console.log("\nOrder status flow:");
 const flow = ["received", "measurements_confirmed", "cutting", "sewing", "embroidery", "ready", "delivered"];
 assert(flow.indexOf("cutting") === flow.indexOf("received") + 2, "status flow order valid");
 
+console.log("\nStyle Twin cosine:");
+function cosine(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i];
+    na += a[i] * a[i];
+    nb += b[i] * b[i];
+  }
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+assert(Math.abs(cosine([1, 0], [1, 0]) - 1) < 1e-9, "identical vectors → 1");
+assert(Math.abs(cosine([1, 0], [0, 1])) < 1e-9, "orthogonal vectors → 0");
+assert(cosine([1, 1], [2, 2]) > 0.99, "scaled same direction → ~1");
+assert(cosine([0.9, 0.1], [0.85, 0.15]) > 0.55, "similar fashion vectors pass threshold");
+
 console.log(`\nResults: ${passed} passed, ${failed} failed\n`);
 process.exit(failed > 0 ? 1 : 0);

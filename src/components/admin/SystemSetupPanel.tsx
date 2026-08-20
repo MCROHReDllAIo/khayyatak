@@ -22,6 +22,7 @@ const ICONS: Record<string, typeof Sparkles> = {
   database: Database,
   auth: KeyRound,
   ai_chat: Sparkles,
+  style_twin: Sparkles,
   virtual_tryon: Shirt,
   innovation_viz: Palette,
 };
@@ -199,6 +200,37 @@ export function SystemSetupPanel() {
           >
             {t("مركز الذكاء", "AI Center")}
           </Link>
+          <Link
+            href="/customer/style-twin"
+            className="text-xs font-medium border border-border px-3.5 py-2 rounded-lg hover:bg-muted/50 transition-colors"
+          >
+            {t("توأم الأسلوب", "Style Twin")}
+          </Link>
+          <button
+            type="button"
+            className="text-xs font-medium border border-border px-3.5 py-2 rounded-lg hover:bg-muted/50 transition-colors"
+            onClick={async () => {
+              const res = await fetch("/api/ml/style-twin/index", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({}),
+              });
+              const data = await res.json();
+              if (res.ok) {
+                alert(
+                  t(
+                    `تمت الفهرسة: ${data.indexed ?? 0} · الإجمالي ${data.indexedCount ?? 0}`,
+                    `Indexed: ${data.indexed ?? 0} · total ${data.indexedCount ?? 0}`
+                  )
+                );
+                load();
+              } else {
+                alert(data.error || t("فشلت الفهرسة", "Index failed"));
+              }
+            }}
+          >
+            {t("فهرسة Style Twin", "Reindex Style Twin")}
+          </button>
           <Link
             href="/customer/ai"
             className="text-xs font-medium border border-border px-3.5 py-2 rounded-lg hover:bg-muted/50 transition-colors"

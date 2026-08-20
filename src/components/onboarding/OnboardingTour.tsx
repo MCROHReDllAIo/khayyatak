@@ -34,10 +34,10 @@ function computePlacement(
     right: vw - rect.right,
   };
 
-  let side = preferred === "auto" ? "bottom" : preferred;
-  if (preferred === "auto") {
+  let side: string = preferred && preferred !== "auto" ? preferred : "bottom";
+  if (!preferred || preferred === "auto") {
     const ranked = Object.entries(space).sort((a, b) => b[1] - a[1]);
-    side = ranked[0][0] as "top" | "bottom" | "left" | "right";
+    side = ranked[0]?.[0] ?? "bottom";
   }
 
   let top = rect.bottom + 14;

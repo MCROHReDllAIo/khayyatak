@@ -25,8 +25,10 @@ export interface TourStep {
   bodyAr: string;
   bodyEn: string;
   placement?: TourPlacement;
-  /** Switch home mobile tab when entering step */
+  /** Switch home mobile tab when entering step (legacy) */
   mobileTab?: "ai" | "stores";
+  /** Open floating AI sheet for this step */
+  openAi?: boolean;
   /** Optional honesty note when feature may be unavailable */
   caveatAr?: string;
   caveatEn?: string;

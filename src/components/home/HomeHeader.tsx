@@ -1,27 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { Sparkles } from "lucide-react";
 import { BRAND } from "@/lib/constants/brand";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/lib/context/locale-context";
 import { useAuth } from "@/lib/context/app-context";
-import { cn } from "@/lib/utils";
 
 interface HomeHeaderProps {
-  mobileTab: "ai" | "stores";
-  onMobileTab: (tab: "ai" | "stores") => void;
+  onOpenAi?: () => void;
 }
 
-export function HomeHeader({ mobileTab, onMobileTab }: HomeHeaderProps) {
+export function HomeHeader({ onOpenAi }: HomeHeaderProps) {
   const { t } = useLocale();
   const { isAuthenticated, authLoading, role } = useAuth();
   const dashboardHref =
     role === "admin" ? "/admin" : role === "tailor" ? "/tailor/dashboard" : "/customer";
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071A33]/85 backdrop-blur-xl">
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center justify-between gap-3 px-4 md:px-6">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#071A33]/90 backdrop-blur-xl">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-3 px-4 md:px-6 lg:px-8">
         <Link href="/" className="flex items-baseline gap-2">
           <span className="text-lg font-bold text-white font-arabic tracking-tight">{BRAND.nameAr}</span>
           <span className="hidden sm:inline text-[10px] uppercase tracking-[0.2em] text-omani-gold/90">
@@ -29,11 +28,10 @@ export function HomeHeader({ mobileTab, onMobileTab }: HomeHeaderProps) {
           </span>
         </Link>
 
-        <nav className="hidden lg:flex items-center gap-6 text-sm text-white/55">
-          <a href="#home-experience" className="hover:text-white transition-colors">
-            {t("الرئيسية", "Home")}
+        <nav className="hidden md:flex items-center gap-6 text-sm text-white/50">
+          <a href="#home-experience" className="text-white/80 hover:text-white transition-colors">
+            {t("المتاجر", "Stores")}
           </a>
-          <span className="text-white/80">{t("المتاجر", "Stores")}</span>
           <Link href="/customer/innovation" className="hover:text-white transition-colors">
             {t("ابتكار", "Innovate")}
           </Link>
@@ -43,28 +41,15 @@ export function HomeHeader({ mobileTab, onMobileTab }: HomeHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2">
-          <div className="flex lg:hidden rounded-full bg-white/10 p-0.5">
-            <button
-              type="button"
-              onClick={() => onMobileTab("ai")}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors",
-                mobileTab === "ai" ? "bg-white text-navy" : "text-white/70"
-              )}
-            >
-              {t("الذكاء", "AI")}
-            </button>
-            <button
-              type="button"
-              onClick={() => onMobileTab("stores")}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-[11px] font-medium transition-colors",
-                mobileTab === "stores" ? "bg-white text-navy" : "text-white/70"
-              )}
-            >
-              {t("المتاجر", "Stores")}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onOpenAi}
+            className="hidden sm:inline-flex items-center gap-1.5 h-8 rounded-full border border-omani-gold/30 bg-omani-gold/10 px-3 text-xs font-medium text-omani-gold hover:bg-omani-gold/20 transition-colors"
+            data-tour="home-ai-header"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            {t("الذكاء", "AI")}
+          </button>
           <LanguageSwitcher className="text-white/70 [&_button]:text-white/55 [&_button.text-primary]:text-omani-gold" />
           {authLoading ? (
             <div className="h-8 w-20 rounded-md bg-white/10 animate-pulse" />
