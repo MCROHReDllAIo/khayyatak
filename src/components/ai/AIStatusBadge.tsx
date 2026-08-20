@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Sparkles, CheckCircle2, X, ExternalLink, AlertTriangle } from "lucide-react";
 import { fetchAIStatus } from "@/lib/ai/provider";
 import { useLocale } from "@/lib/context/locale-context";
 import { useAuth } from "@/lib/context/app-context";
-import Link from "next/link";
-import type { SystemStatusPayload } from "@/lib/admin/system-status";
 
 const DISMISS_KEY = "st_ai_banner_dismissed";
 
@@ -30,10 +29,10 @@ export function AIStatusBadge({ className = "" }: { className?: string }) {
   if (status.connected) {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 text-xs font-medium text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full ${className}`}
+        className={`inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full ${className}`}
       >
         <CheckCircle2 className="h-3 w-3" />
-        OpenRouter · {status.model ?? "connected"}
+        OpenRouter · {status.model ?? "OK"}
       </span>
     );
   }
@@ -48,20 +47,15 @@ export function AIStatusBadge({ className = "" }: { className?: string }) {
   );
 }
 
-/** Admin-only setup notice — shown across admin layout when features need config */
+/** Compact admin notice — only when AI chat is broken */
 export function AIStatusBanner() {
   const { t } = useLocale();
   const { role } = useAuth();
   const [status, setStatus] = useState<Awaited<ReturnType<typeof fetchAIStatus>> | null>(null);
-  const [systemStatus, setSystemStatus] = useState<SystemStatusPayload | null>(null);
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
     fetchAIStatus().then(setStatus);
-    fetch("/api/admin/system-status")
-      .then((r) => r.json())
-      .then(setSystemStatus)
-      .catch(() => setSystemStatus(null));
     try {
       setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
     } catch {
@@ -70,15 +64,10 @@ export function AIStatusBanner() {
   }, []);
 
   if (role !== "admin") return null;
+  if (!status?.configured || status.connected) return null;
 
-  const isManagementKey = status?.keyIssue === "management_key";
-  const aiNeedsAttention = status?.configured && !status.connected;
-  const tryonMissing = systemStatus?.features.some(
-    (f) => f.id === "virtual_tryon" && f.status === "needs_config"
-  );
-  const showMainBanner = aiNeedsAttention && (!dismissed || isManagementKey);
-
-  if (!showMainBanner && !tryonMissing) return null;
+  const isManagementKey = status.keyIssue === "management_key";
+  if (!isManagementKey && dismissed) return null;
 
   const isProduction = typeof window !== "undefined" && window.location.hostname !== "localhost";
 
@@ -93,74 +82,56 @@ export function AIStatusBanner() {
   };
 
   return (
-    <div className="space-y-3 mb-4">
-      {showMainBanner && (
-        <div className="rounded-xl border border-amber-300 bg-gradient-to-r from-amber-50 to-orange-50 px-4 py-3 text-sm text-amber-950 flex items-start gap-3 shadow-sm">
-          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-amber-700" />
-          <div className="flex-1 min-w-0">
-            {isManagementKey ? (
-              <>
-                <p className="font-semibold">
-                  {t(
-                    "مفتاح OpenRouter غير مناسب — أضف مفتاح Inference",
-                    "OpenRouter key type is wrong — add an Inference key"
-                  )}
-                </p>
-                <p className="text-xs mt-1.5 opacity-90 leading-relaxed">
-                  {t(
-                    "المفتاح الحالي Management Key ولا يعمل للمحادثات أو الابتكار. أنشئ Inference API Key من",
-                    "The current key is a Management Key and cannot run chat or innovation. Create an Inference API Key at"
-                  )}{" "}
-                  <a
-                    href="https://openrouter.ai/keys"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline inline-flex items-center gap-0.5 font-medium"
-                  >
-                    openrouter.ai/keys
-                    <ExternalLink className="h-3 w-3" />
-                  </a>
-                  {isProduction
-                    ? t(" ثم أضفه في Railway → Variables → OPENROUTER_API_KEY", " then set Railway → Variables → OPENROUTER_API_KEY")
-                    : t(" ثم ضعه في .env.local وأعد تشغيل npm run dev", " then add to .env.local and restart npm run dev")}
-                </p>
-                <Link href="/admin/settings" className="text-xs mt-2 inline-block font-medium text-primary underline">
-                  {t("عرض دليل الإعداد الكامل", "View full setup guide")}
-                </Link>
-              </>
-            ) : (
-              <>
-                <p className="font-semibold">{t("OpenRouter غير متصل", "OpenRouter is not connected")}</p>
-                <p className="text-xs mt-1 opacity-90">{status?.error ?? t("تحقق من OPENROUTER_API_KEY", "Check OPENROUTER_API_KEY")}</p>
-              </>
-            )}
-          </div>
-          {!isManagementKey && (
-            <button type="button" onClick={dismiss} className="p-1 rounded-lg hover:bg-amber-100 shrink-0" aria-label="Dismiss">
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      )}
-
-      {tryonMissing && status?.connected && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900 flex items-start gap-3">
-          <Sparkles className="h-4 w-4 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-medium">
-              {t("فعّل التجربة الافتراضية ومعاينة الابتكار", "Enable virtual try-on & innovation preview")}
-            </p>
-            <p className="text-xs mt-1 opacity-90">
+    <div className="mb-5 rounded-2xl border border-amber-200/80 bg-amber-50/90 px-4 py-3.5 flex gap-3 items-start">
+      <div className="h-9 w-9 rounded-xl bg-amber-100 flex items-center justify-center shrink-0">
+        <AlertTriangle className="h-4 w-4 text-amber-700" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-amber-950">
+          {isManagementKey
+            ? t("مفتاح OpenRouter يحتاج تحديث", "OpenRouter key needs updating")
+            : t("OpenRouter غير متصل", "OpenRouter is not connected")}
+        </p>
+        <p className="text-xs text-amber-900/80 mt-1 leading-relaxed">
+          {isManagementKey ? (
+            <>
               {t(
-                "أضف TRYON_AI_PROVIDER_KEY (Replicate) في Railway —",
-                "Add TRYON_AI_PROVIDER_KEY (Replicate) in Railway —"
+                "استخدم Inference API Key من",
+                "Use an Inference API Key from"
               )}{" "}
-              <a href="https://replicate.com/account/api-tokens" target="_blank" rel="noopener noreferrer" className="underline">
-                replicate.com
+              <a
+                href="https://openrouter.ai/keys"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline font-medium inline-flex items-center gap-0.5"
+              >
+                openrouter.ai/keys
+                <ExternalLink className="h-3 w-3" />
               </a>
-            </p>
-          </div>
-        </div>
+              {isProduction
+                ? t(" وضعه في Railway → Variables → OPENROUTER_API_KEY", " and set Railway → Variables → OPENROUTER_API_KEY")
+                : t(" وضعه في .env.local ثم أعد التشغيل", " and set it in .env.local, then restart")}
+            </>
+          ) : (
+            status.error ?? t("تحقق من OPENROUTER_API_KEY", "Check OPENROUTER_API_KEY")
+          )}
+        </p>
+        <Link
+          href="/admin/settings"
+          className="inline-flex mt-2 text-xs font-medium text-navy hover:text-primary transition-colors"
+        >
+          {t("الإعدادات ←", "Settings →")}
+        </Link>
+      </div>
+      {!isManagementKey && (
+        <button
+          type="button"
+          onClick={dismiss}
+          className="p-1.5 rounded-lg hover:bg-amber-100/80 text-amber-800/60 shrink-0"
+          aria-label="Dismiss"
+        >
+          <X className="h-4 w-4" />
+        </button>
       )}
     </div>
   );
