@@ -4,6 +4,7 @@ export const BRAND = {
   nameEn: "Khayyatak",
   shortEn: "kytk",
   logo: "/brand/khayyatak-logo.png",
+  /** Transparent PNG mark (cream/navy bg removed) */
   taglineAr: "نفصّلها على مقاسك... بذكاء",
   taglineEn: "Tailored to you, intelligently",
   descriptionAr:
