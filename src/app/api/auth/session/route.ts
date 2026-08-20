@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getProfileById } from "@/lib/auth/postgres-auth";
-import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
+import { SESSION_COOKIE, signSession, verifySession } from "@/lib/auth/session";
+import { sessionCookieOptions } from "@/lib/auth/cookies";
 import { isPostgresAuthEnabled } from "@/lib/auth/config";
 
 export async function GET() {
@@ -20,6 +21,19 @@ export async function GET() {
   }
 
   const profile = await getProfileById(session.userId);
+  if (!profile) {
+    cookieStore.delete(SESSION_COOKIE);
+    return NextResponse.json({ profile: null });
+  }
+
+  // Rolling refresh — extend session on each visit so one login lasts
+  const refreshed = signSession({
+    userId: profile.id,
+    email: profile.email,
+    role: profile.role,
+  });
+  cookieStore.set(SESSION_COOKIE, refreshed, sessionCookieOptions());
+
   return NextResponse.json({ profile });
 }
 

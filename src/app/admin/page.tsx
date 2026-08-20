@@ -175,7 +175,7 @@ export default function AdminCommandCenterPage() {
 
       <div className="grid lg:grid-cols-2 gap-8">
         {!loading && data && <AIUsageSection data={data.ai} />}
-        {!loading && data && <AIPerformanceSection data={{ ...data.aiPerf, demoLabel: false }} />}
+        {!loading && data && <AIPerformanceSection data={data.aiPerf} />}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
@@ -184,7 +184,7 @@ export default function AdminCommandCenterPage() {
       </div>
 
       {!loading && data && <GrowthFunnelSection funnel={data.funnel} />}
-      {!loading && data && <NationalAIPanelSection data={{ ...data.national, demoLabel: false }} />}
+      {!loading && data && <NationalAIPanelSection data={data.national} />}
       {!loading && <AICommandNetworkSection />}
       {!loading && data && <SystemHealthSection health={data.health} />}
     </div>

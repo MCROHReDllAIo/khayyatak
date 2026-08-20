@@ -120,8 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<Profile | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authProvider, setAuthProvider] = useState<AuthProviderKind>("none");
+  const [authConfiguredState, setAuthConfiguredState] = useState(isSupabaseConfigured());
   const supabaseConfigured = isSupabaseConfigured();
-  const authConfigured = supabaseConfigured || authProvider === "postgres";
+  const authConfigured = authConfiguredState;
 
   const loadProfile = useCallback(async () => {
     if (supabaseConfigured) {
@@ -145,37 +146,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (authProvider === "postgres") {
-      try {
-        const res = await fetch("/api/auth/session", { credentials: "include" });
-        const data = (await res.json()) as { profile?: Profile | null };
-        setUser(data.profile ? mapProfile(data.profile as unknown as Record<string, unknown>) : null);
-      } catch {
-        setUser(null);
-      }
-      setAuthLoading(false);
-      return;
+    try {
+      const res = await fetch("/api/auth/session", { credentials: "include", cache: "no-store" });
+      const data = (await res.json()) as { profile?: Profile | null };
+      setUser(data.profile ? mapProfile(data.profile as unknown as Record<string, unknown>) : null);
+    } catch {
+      setUser(null);
     }
-
-    setUser(null);
     setAuthLoading(false);
-  }, [authProvider, supabaseConfigured]);
-
-  useEffect(() => {
-    if (supabaseConfigured) {
-      setAuthProvider("supabase");
-      return;
-    }
-    fetch("/api/auth/config")
-      .then((r) => r.json())
-      .then((d: { provider?: AuthProviderKind }) => setAuthProvider(d.provider ?? "none"))
-      .catch(() => setAuthProvider("none"));
   }, [supabaseConfigured]);
 
   useEffect(() => {
-    if (!supabaseConfigured && authProvider === "none") return;
-    loadProfile();
-  }, [loadProfile, authProvider, supabaseConfigured]);
+    let cancelled = false;
+
+    async function initAuth() {
+      setAuthLoading(true);
+
+      if (supabaseConfigured) {
+        setAuthProvider("supabase");
+        setAuthConfiguredState(true);
+        if (!cancelled) await loadProfile();
+        return;
+      }
+
+      try {
+        const [configRes, sessionRes] = await Promise.all([
+          fetch("/api/auth/config", { credentials: "include", cache: "no-store" }),
+          fetch("/api/auth/session", { credentials: "include", cache: "no-store" }),
+        ]);
+        const config = (await configRes.json()) as { provider?: AuthProviderKind; configured?: boolean };
+        const session = (await sessionRes.json()) as { profile?: Profile | null };
+
+        if (cancelled) return;
+
+        setAuthProvider(config.provider ?? "none");
+        setAuthConfiguredState(Boolean(config.configured));
+        setUser(session.profile ? mapProfile(session.profile as unknown as Record<string, unknown>) : null);
+      } catch {
+        if (!cancelled) {
+          setAuthProvider("none");
+          setAuthConfiguredState(false);
+          setUser(null);
+        }
+      }
+
+      if (!cancelled) setAuthLoading(false);
+    }
+
+    initAuth();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseConfigured, loadProfile]);
 
   useEffect(() => {
     const supabase = getBrowserSupabase();

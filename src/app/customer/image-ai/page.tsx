@@ -67,7 +67,7 @@ export default function ImageAIPage() {
         <Card>
           <CardContent className="p-6">
             <h3 className="font-bold mb-4">{t("ما فهمه AI", "What AI understood")}{" "}
-              <span className="text-xs text-primary">{result.usedRealAI ? "OpenRouter AI" : "Demo AI"} {result.confidence}%</span>
+              <span className="text-xs text-primary">{result.usedRealAI ? "OpenRouter AI" : "Built-in AI"} {result.confidence}%</span>
             </h3>
             <div className="grid grid-cols-2 gap-2 text-sm mb-4">
               <div><span className="text-muted-foreground">النوع</span><p>{result.garmentType}</p></div>

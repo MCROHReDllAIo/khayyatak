@@ -24,7 +24,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { GarmentPreview } from "@/components/designer/GarmentPreview";
 import { ConciergeInput } from "@/components/ai/ConciergeInput";
-import { AIStatusBanner } from "@/components/ai/AIStatusBadge";
 import { GeometricPattern } from "@/components/ui/GeometricPattern";
 import { TailorCard } from "@/components/tailor/TailorCard";
 import { useLocale } from "@/lib/context/locale-context";
@@ -44,7 +43,9 @@ const AI_LABELS = [
 
 export default function HomePage() {
   const { t, locale } = useLocale();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, authLoading, role } = useAuth();
+  const dashboardHref =
+    role === "admin" ? "/admin" : role === "tailor" ? "/tailor/dashboard" : "/customer";
   const [previewDesign, setPreviewDesign] = useState<{
     garmentType: GarmentType;
     color: string;
@@ -104,8 +105,10 @@ export default function HomePage() {
           </div>
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
-            {isAuthenticated ? (
-              <Link href="/customer">
+            {authLoading ? (
+              <div className="h-9 w-24 rounded-md bg-muted/60 animate-pulse" />
+            ) : isAuthenticated ? (
+              <Link href={dashboardHref}>
                 <Button size="sm">{t("لوحة التحكم", "Dashboard")}</Button>
               </Link>
             ) : (
@@ -134,7 +137,6 @@ export default function HomePage() {
           </motion.div>
 
           <div className="mt-10 md:mt-14 max-w-2xl mx-auto">
-            <AIStatusBanner />
             <ConciergeInput variant="hero" />
           </div>
 

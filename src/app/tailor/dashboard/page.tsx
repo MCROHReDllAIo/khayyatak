@@ -58,7 +58,7 @@ export default function TailorDashboard() {
             <p className="mt-6 text-white/80 text-lg max-w-md leading-relaxed">
               {insights[0]?.message_ar ?? t("تحليل مباشر من بيانات الطلبات.", "Live analysis from order data.")}
             </p>
-            <p className="text-xs text-white/40 mt-2">Demo AI · {t("بيانات فعلية من التخزين المحلي", "Live localStorage data")}</p>
+            <p className="text-xs text-white/40 mt-2">{t("بيانات فعلية من التخزين المحلي", "Live localStorage data")}</p>
           </div>
           <div className="flex flex-col items-center">
             <AnimatedScore

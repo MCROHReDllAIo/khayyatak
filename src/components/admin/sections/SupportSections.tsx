@@ -68,7 +68,7 @@ export function AIUsageSection({ data }: { data: AIAnalyticsData }) {
   );
 }
 
-export function AIPerformanceSection({ data }: { data: { successRate: number; avgResponseSec: number; fallbackPct: number; providerStatus: string; hasData?: boolean; demoLabel?: boolean } }) {
+export function AIPerformanceSection({ data }: { data: { successRate: number; avgResponseSec: number; fallbackPct: number; providerStatus: string; hasData?: boolean } }) {
   const { t } = useLocale();
 
   return (
@@ -242,7 +242,7 @@ export function QuickActionsSection() {
   );
 }
 
-export function NationalAIPanelSection({ data }: { data: NationalPanelData & { demoLabel?: boolean } }) {
+export function NationalAIPanelSection({ data }: { data: NationalPanelData }) {
   const { t } = useLocale();
 
   const items = [

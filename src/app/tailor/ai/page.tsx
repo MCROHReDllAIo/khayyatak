@@ -54,7 +54,7 @@ export default function TailorAIPage() {
           <Sparkles className="h-6 w-6 text-primary" />
           {t(BRAND.aiAssistantAr, BRAND.aiAssistantEn)}
         </h1>
-        <p className="text-muted-foreground">{t("ذكاء الأعمال لمتجرك — Demo AI من بيانات حقيقية", "Business intelligence — Demo AI from live data")}</p>
+        <p className="text-muted-foreground">{t("ذكاء الأعمال لمتجرك — من بيانات حقيقية", "Business intelligence — from live data")}</p>
       </div>
 
       <Card className="border-primary/20">
@@ -73,7 +73,7 @@ export default function TailorAIPage() {
           {voiceReply && (
             <p className="text-sm rounded-xl bg-omani-cream p-3 border">{voiceReply}</p>
           )}
-          <p className="text-[10px] text-muted-foreground mt-2">Demo Voice · {t("يمكن استبداله بمزود حقيقي", "Replaceable with real provider")}</p>
+          <p className="text-[10px] text-muted-foreground mt-2">{t("إدخال صوتي", "Voice input")} · {t("يمكن ربطه بمزود حقيقي", "Connectable to a real provider")}</p>
         </CardContent>
       </Card>
 
@@ -104,7 +104,7 @@ export default function TailorAIPage() {
           </ol>
           <p className="text-sm font-medium text-primary">{inventoryWorkflow.suggestedAction.message_ar}</p>
           <Button size="sm" className="mt-3" onClick={handleApproveInventory}>{t("موافقة", "Approve")}</Button>
-          <p className="text-[10px] text-muted-foreground mt-2">{t("يتطلب موافقتك — Demo", "Requires your approval — Demo")}</p>
+          <p className="text-[10px] text-muted-foreground mt-2">{t("يتطلب موافقتك", "Requires your approval")}</p>
         </CardContent>
       </Card>
 

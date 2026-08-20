@@ -105,7 +105,7 @@ export function NationalCoverageSection({ cities }: { cities: CityCoverage[] }) 
           <div className="relative w-full max-w-md h-full bg-white shadow-2xl overflow-y-auto animate-in slide-in-from-end">
             <div className="sticky top-0 bg-navy text-white p-6 flex items-start justify-between">
               <div>
-                <p className="text-omani-gold text-xs uppercase tracking-wider">City Detail · Demo</p>
+                <p className="text-omani-gold text-xs uppercase tracking-wider">{t("تفاصيل المدينة", "City Detail")}</p>
                 <h3 className="text-2xl font-bold mt-1">{selected.name_ar}</h3>
               </div>
               <button type="button" onClick={() => setSelected(null)} className="p-2 hover:bg-white/10 rounded-lg">

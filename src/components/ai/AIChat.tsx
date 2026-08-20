@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import { Send, Sparkles, User, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { ChatProductCard } from "@/components/ai/ChatProductCard";
 import { cn } from "@/lib/utils";
+import type { MatchedProduct } from "@/lib/db/products";
 
 export interface ChatMessage {
   id: string;
@@ -13,18 +15,33 @@ export interface ChatMessage {
   content: string;
   actions?: string[];
   imageUrl?: string;
+  products?: MatchedProduct[];
+  isDesignConcept?: boolean;
 }
 
 interface AIChatProps {
   messages: ChatMessage[];
   onSend: (text: string) => void;
   onAction?: (action: string) => void;
+  onProductSelect?: (product: MatchedProduct) => void;
+  onProductVirtualLook?: (product: MatchedProduct) => void;
+  onProductSize?: (product: MatchedProduct) => void;
   loading?: boolean;
   placeholder?: string;
   className?: string;
 }
 
-export function AIChat({ messages, onSend, onAction, loading, placeholder, className }: AIChatProps) {
+export function AIChat({
+  messages,
+  onSend,
+  onAction,
+  onProductSelect,
+  onProductVirtualLook,
+  onProductSize,
+  loading,
+  placeholder,
+  className,
+}: AIChatProps) {
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -80,6 +97,22 @@ export function AIChat({ messages, onSend, onAction, loading, placeholder, class
                 )}
                 {msg.content}
               </div>
+              {msg.products && msg.products.length > 0 && (
+                <div className="mt-3 flex flex-col gap-3 items-start">
+                  {msg.products.map((product) => (
+                    <ChatProductCard
+                      key={product.id}
+                      product={product}
+                      onSelect={onProductSelect}
+                      onVirtualLook={onProductVirtualLook}
+                      onSize={onProductSize}
+                    />
+                  ))}
+                </div>
+              )}
+              {msg.isDesignConcept && (
+                <p className="text-[10px] text-amber-700 mt-1">تصميم مقترح بالذكاء الاصطناعي — ليس منتجًا متوفرًا</p>
+              )}
               {msg.actions && msg.actions.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {msg.actions.map((action) => (

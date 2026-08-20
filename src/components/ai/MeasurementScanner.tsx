@@ -106,9 +106,9 @@ export function MeasurementScanner({ onComplete }: MeasurementScannerProps) {
         {step === "error" && (
           <div className="text-center space-y-4 py-8">
             <AlertCircle className="h-12 w-12 text-destructive mx-auto" />
-            <p className="text-muted-foreground">{t("تعذر الوصول للكاميرا — أدخل يدويًا أو استخدم Demo", "Camera denied — manual or demo")}</p>
+            <p className="text-muted-foreground">{t("تعذر الوصول للكاميرا — أدخل يدويًا", "Camera denied — enter manually")}</p>
             <Button variant="outline" onClick={() => setStep("manual")}>{t("إدخال يدوي", "Manual")}</Button>
-            <Button variant="outline" onClick={() => { setResult(DEFAULT_MANUAL); setStep("result"); }}>{t("Demo AI", "Demo AI")}</Button>
+            <Button variant="outline" onClick={() => { setResult(DEFAULT_MANUAL); setStep("result"); }}>{t("إدخال يدوي", "Manual entry")}</Button>
           </div>
         )}
       </AnimatePresence>

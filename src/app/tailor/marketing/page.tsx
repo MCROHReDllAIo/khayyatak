@@ -57,7 +57,7 @@ export default function MarketingPage() {
       </Button>
       {draft && (
         <div className="rounded-xl border p-5">
-          <p className="text-xs text-muted-foreground mb-2">{usedRealAI ? "OpenRouter AI" : "Demo AI"}</p>
+          <p className="text-xs text-muted-foreground mb-2">{usedRealAI ? "OpenRouter AI" : "Built-in AI"}</p>
           <pre className="text-sm whitespace-pre-wrap">{draft}</pre>
           <Button size="sm" className="mt-4 gap-1" onClick={() => { navigator.clipboard.writeText(draft); setCopied(true); }}>
             {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}{t("نسخ", "Copy")}

@@ -6,6 +6,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/env";
 import { isPostgresAuthEnabled } from "@/lib/auth/config";
 import { signInWithPostgres, signUpWithPostgres, getProfileById } from "@/lib/auth/postgres-auth";
 import { SESSION_COOKIE, signSession, verifySession } from "@/lib/auth/session";
+import { sessionCookieOptions } from "@/lib/auth/cookies";
+import { pgQuery } from "@/lib/db/postgres";
 import { redirect } from "next/navigation";
 import type { UserRole } from "@/types";
 
@@ -16,13 +18,7 @@ async function setPostgresSession(profile: { id: string; email: string; role: Us
     role: profile.role,
   });
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions());
 }
 
 export async function signInWithPassword(email: string, password: string) {
@@ -140,49 +136,109 @@ export async function updateTailorVerification(
   action: "verified" | "rejected" | "info_requested" | "pending",
   note?: string
 ) {
-  const supabase = await createClient();
-  if (!supabase) return { error: "Unauthorized" };
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return { error: "Unauthorized" };
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient();
+    if (!supabase) return { error: "Unauthorized" };
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { error: "Unauthorized" };
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (profile?.role !== "admin") return { error: "Forbidden" };
+    const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+    if (profile?.role !== "admin") return { error: "Forbidden" };
 
-  const verified = action === "verified";
-  const { error: updateError } = await supabase
-    .from("tailors")
-    .update({ verified, verification_status: action, updated_at: new Date().toISOString() })
-    .eq("id", tailorId);
+    const verified = action === "verified";
+    const { error: updateError } = await supabase
+      .from("tailors")
+      .update({ verified, verification_status: action, updated_at: new Date().toISOString() })
+      .eq("id", tailorId);
 
-  if (updateError) return { error: updateError.message };
+    if (updateError) return { error: updateError.message };
 
-  await supabase.from("tailor_verification_actions").insert({
-    tailor_id: tailorId,
-    admin_id: user.id,
-    action,
-    note,
-  });
-
-  await supabase.from("audit_logs").insert({
-    actor_id: user.id,
-    action: `tailor_verification_${action}`,
-    entity_type: "tailor",
-    entity_id: tailorId,
-    payload: { note },
-  });
-
-  const { data: tailor } = await supabase.from("tailors").select("profile_id").eq("id", tailorId).single();
-  if (tailor?.profile_id) {
-    await supabase.from("notifications").insert({
-      user_id: tailor.profile_id,
-      title_ar: action === "verified" ? "تم توثيق حسابك" : "تحديث التحقق",
-      title_en: action === "verified" ? "Account verified" : "Verification update",
-      message_ar: note ?? `حالة التحقق: ${action}`,
-      message_en: note ?? `Verification status: ${action}`,
+    await supabase.from("tailor_verification_actions").insert({
+      tailor_id: tailorId,
+      admin_id: user.id,
+      action,
+      note,
     });
+
+    await supabase.from("audit_logs").insert({
+      actor_id: user.id,
+      action: `tailor_verification_${action}`,
+      entity_type: "tailor",
+      entity_id: tailorId,
+      payload: { note },
+    });
+
+    const { data: tailor } = await supabase.from("tailors").select("profile_id").eq("id", tailorId).single();
+    if (tailor?.profile_id) {
+      await supabase.from("notifications").insert({
+        user_id: tailor.profile_id,
+        title_ar: action === "verified" ? "تم توثيق حسابك" : "تحديث التحقق",
+        title_en: action === "verified" ? "Account verified" : "Verification update",
+        message_ar: note ?? `حالة التحقق: ${action}`,
+        message_en: note ?? `Verification status: ${action}`,
+      });
+    }
+
+    return { success: true };
   }
 
-  return { success: true };
+  if (isPostgresAuthEnabled()) {
+    const cookieStore = await cookies();
+    const token = cookieStore.get(SESSION_COOKIE)?.value;
+    if (!token) return { error: "Unauthorized" };
+    const session = verifySession(token);
+    if (!session) return { error: "Unauthorized" };
+
+    const profile = await getProfileById(session.userId);
+    if (profile?.role !== "admin") return { error: "Forbidden" };
+
+    const verified = action === "verified";
+    try {
+      await pgQuery(
+        `UPDATE tailors
+         SET verified = $1, verification_status = $2::verification_status, updated_at = NOW()
+         WHERE id = $3`,
+        [verified, action, tailorId]
+      );
+
+      await pgQuery(
+        `INSERT INTO tailor_verification_actions (tailor_id, admin_id, action, note)
+         VALUES ($1, $2, $3::verification_status, $4)`,
+        [tailorId, session.userId, action, note ?? null]
+      ).catch(() => undefined);
+
+      await pgQuery(
+        `INSERT INTO audit_logs (actor_id, action, entity_type, entity_id, payload)
+         VALUES ($1, $2, 'tailor', $3, $4::jsonb)`,
+        [session.userId, `tailor_verification_${action}`, tailorId, JSON.stringify({ note })]
+      ).catch(() => undefined);
+
+      const { rows } = await pgQuery<{ profile_id: string | null }>(
+        `SELECT profile_id FROM tailors WHERE id = $1 LIMIT 1`,
+        [tailorId]
+      );
+      const profileId = rows[0]?.profile_id;
+      if (profileId) {
+        await pgQuery(
+          `INSERT INTO notifications (user_id, title_ar, title_en, message_ar, message_en)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [
+            profileId,
+            action === "verified" ? "تم توثيق حسابك" : "تحديث التحقق",
+            action === "verified" ? "Account verified" : "Verification update",
+            note ?? `حالة التحقق: ${action}`,
+            note ?? `Verification status: ${action}`,
+          ]
+        ).catch(() => undefined);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : "Update failed" };
+    }
+  }
+
+  return { error: "Unauthorized" };
 }

@@ -81,7 +81,7 @@ export function generateBusinessInsightsFromData(
   insights.push({
     id: "bi-revenue",
     message_ar: `إيراداتك التجريبية: ${revenue.toFixed(1)} ر.ع — متوسط السوق ${stats.avgOrderPrice} ر.ع.`,
-    message_en: `Demo revenue: ${revenue.toFixed(1)} OMR — market avg ${stats.avgOrderPrice} OMR.`,
+    message_en: `Revenue: ${revenue.toFixed(1)} OMR — market avg ${stats.avgOrderPrice} OMR.`,
     type: "pricing",
     priority: "medium",
   });

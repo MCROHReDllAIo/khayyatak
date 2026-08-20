@@ -90,7 +90,7 @@ export default function PrivacyPage() {
               ))}
             </div>
             {deleted && (
-              <p className="text-sm text-primary">{t(`تم طلب حذف ${deleted} — Demo`, `Deletion requested for ${deleted} — Demo`)}</p>
+              <p className="text-sm text-primary">{t(`تم طلب حذف ${deleted}`, `Deletion requested for ${deleted}`)}</p>
             )}
           </CardContent>
         </Card>

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { FileText, ShoppingBag, Download, Save } from "lucide-react";
 import { generateTailorSpecification, type TailorSpecification } from "@/lib/ai/specification";
 import { useAuth, useAppState } from "@/lib/context/app-context";
-import { TAILORS } from "@/lib/demo-data";
 import { SpecificationCard } from "@/components/customer/SpecificationCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,12 +15,11 @@ const SPEC_KEY = "st_saved_spec";
 export default function SpecificationPage() {
   const { t } = useLocale();
   const { user } = useAuth();
-  const { design, measurements, selectedTailorId } = useAppState();
-  const tailor = TAILORS.find((t_) => t_.id === selectedTailorId);
+  const { design, measurements } = useAppState();
 
   const baseSpec = useMemo(
-    () => generateTailorSpecification(user, design, measurements, tailor?.name_ar, tailor?.delivery_days),
-    [user, design, measurements, tailor]
+    () => generateTailorSpecification(user, design, measurements),
+    [user, design, measurements]
   );
 
   const [spec, setSpec] = useState<TailorSpecification>(() => {
@@ -57,7 +55,7 @@ export default function SpecificationPage() {
           {t("مواصفات التفصيل", "AI Tailoring Specification")}
         </h1>
         <p className="text-muted-foreground mt-1">
-          {t("ورقة طلب احترافية للخياط — Demo AI", "Professional order sheet — Demo AI")}
+          {t("ورقة طلب احترافية للخياط", "Professional order sheet for your tailor")}
         </p>
       </div>
       <SpecificationCard spec={spec} />

@@ -77,7 +77,7 @@ export default function ProductCreatorPage() {
       </Button>
       {draft && (
         <div className="rounded-xl border p-5 space-y-3">
-          <p className="text-xs text-muted-foreground">{usedRealAI ? "OpenRouter AI" : "Demo AI"}</p>
+          <p className="text-xs text-muted-foreground">{usedRealAI ? "OpenRouter AI" : "Built-in AI"}</p>
           <Input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
           <Input value={draft.description} onChange={(e) => setDraft({ ...draft, description: e.target.value })} />
           <Input value={draft.price} onChange={(e) => setDraft({ ...draft, price: e.target.value })} />

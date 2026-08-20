@@ -9,6 +9,7 @@ import {
   Sparkles,
   User,
   LogOut,
+  Wand2,
 } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 import { LanguageSwitcher } from "@/components/shared/LanguageSwitcher";
@@ -19,6 +20,7 @@ import { cn } from "@/lib/utils";
 
 const NAV = [
   { href: "/customer", icon: Home, ar: "الرئيسية", en: "Home" },
+  { href: "/customer/innovation", icon: Wand2, ar: "ابتكار", en: "Innovate" },
   { href: "/customer/ai", icon: Sparkles, ar: "AI", en: "AI" },
   { href: "/customer/designer", icon: Palette, ar: "التصميم", en: "Design" },
   { href: "/customer/orders", icon: ShoppingBag, ar: "الطلبات", en: "Orders" },

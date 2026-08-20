@@ -143,7 +143,7 @@ export function StyleDNAView({ dna }: StyleDNAViewProps) {
             </motion.span>
           ))}
           <span className="ms-auto text-xs text-muted-foreground self-center">
-            {dna.budgetRange} · Demo Style DNA
+            {dna.budgetRange} · Style DNA
           </span>
         </div>
       </div>

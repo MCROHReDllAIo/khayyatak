@@ -6,10 +6,18 @@ import { SESSION_COOKIE, verifySession } from "@/lib/auth/session";
 
 const PROTECTED_PREFIXES = ["/customer", "/tailor", "/admin"];
 
-function hasPostgresSession(request: NextRequest): boolean {
+function roleHome(role: string): string {
+  if (role === "admin") return "/admin";
+  if (role === "tailor") return "/tailor/dashboard";
+  return "/customer";
+}
+
+function hasPostgresSession(request: NextRequest): { valid: boolean; role?: string } {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!token) return false;
-  return Boolean(verifySession(token));
+  if (!token) return { valid: false };
+  const session = verifySession(token);
+  if (!session) return { valid: false };
+  return { valid: true, role: session.role };
 }
 
 export async function updateSession(request: NextRequest) {
@@ -22,16 +30,17 @@ export async function updateSession(request: NextRequest) {
 
   if (!valid) {
     if (isPostgresAuthEnabled()) {
-      const loggedIn = hasPostgresSession(request);
-      if (isProtected && !loggedIn) {
+      const session = hasPostgresSession(request);
+      if (isProtected && !session.valid) {
         const loginUrl = request.nextUrl.clone();
         loginUrl.pathname = "/login";
         loginUrl.searchParams.set("redirect", pathname);
         return NextResponse.redirect(loginUrl);
       }
-      if (loggedIn && pathname === "/login") {
-        const redirect = request.nextUrl.searchParams.get("redirect") ?? "/customer";
-        return NextResponse.redirect(new URL(redirect, request.url));
+      if (session.valid && pathname === "/login") {
+        const redirectParam = request.nextUrl.searchParams.get("redirect");
+        const dest = redirectParam ?? roleHome(session.role ?? "customer");
+        return NextResponse.redirect(new URL(dest, request.url));
       }
     }
     return supabaseResponse;

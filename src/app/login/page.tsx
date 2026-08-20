@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -20,7 +20,7 @@ function LoginForm() {
   const { t } = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { refreshProfile, authConfigured, authProvider } = useAuth();
+  const { refreshProfile, authConfigured, isAuthenticated, authLoading, role: userRole } = useAuth();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -36,6 +36,12 @@ function LoginForm() {
     tailor: "/tailor/dashboard",
     admin: "/admin",
   };
+
+  useEffect(() => {
+    if (authLoading || !isAuthenticated || !userRole) return;
+    const dest = redirect !== "/" ? redirect : roleHome[userRole];
+    router.replace(dest);
+  }, [authLoading, isAuthenticated, userRole, redirect, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -86,35 +92,19 @@ function LoginForm() {
           <div className="text-center mb-8">
             <h1 className="text-2xl font-bold text-navy">{t("تسجيل الدخول", "Sign In")}</h1>
             <p className="text-muted-foreground mt-2 text-sm">
-              {authProvider === "postgres"
-                ? t(`${BRAND.nameAr} — حساب حقيقي`, `${BRAND.nameEn} — secure account`)
-                : t(`${BRAND.nameAr} — حساب حقيقي عبر Supabase Auth`, `${BRAND.nameEn} — real account via Supabase Auth`)}
+              {t(`${BRAND.nameAr} — حسابك الآمن`, `${BRAND.nameEn} — your secure account`)}
             </p>
           </div>
 
-          {!authConfigured && (
+          {!authConfigured && process.env.NODE_ENV === "development" && (
             <Card className="mb-4 border-amber-300 bg-amber-50">
               <CardContent className="p-4 text-sm text-amber-900 space-y-2">
                 <p>
                   {t(
-                    "أضف DATABASE_URL (Railway) أو مفاتيح Supabase في .env.local",
-                    "Add DATABASE_URL (Railway) or Supabase keys in .env.local"
+                    "أضف DATABASE_URL أو مفاتيح Supabase في .env.local",
+                    "Add DATABASE_URL or Supabase keys in .env.local"
                   )}
                 </p>
-                <p className="text-xs text-amber-800/80">
-                  {t(
-                    "Railway: npm run db:migrate · Supabase: npm run setup:supabase",
-                    "Railway: npm run db:migrate · Supabase: npm run setup:supabase"
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-          )}
-
-          {authProvider === "postgres" && (
-            <Card className="mb-4 border-primary/20 bg-primary/5">
-              <CardContent className="p-3 text-xs text-primary">
-                {t("متصل بقاعدة PostgreSQL على Railway", "Connected to Railway PostgreSQL")}
               </CardContent>
             </Card>
           )}

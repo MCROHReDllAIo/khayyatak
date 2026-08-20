@@ -50,8 +50,8 @@ function mockStyleRecommendation(prompt: string): StyleRecommendation {
     embroidery,
     embroideryKey,
     style,
-    message_ar: `اقتراح Demo: ${garmentType === "abaya" ? "عباية" : "دشداشة"} ${color} · ${fabric} · ${embroidery}`,
-    message_en: `Demo: ${garmentType} ${color} ${fabric}`,
+    message_ar: `اقتراح: ${garmentType === "abaya" ? "عباية" : "دشداشة"} ${color} · ${fabric} · ${embroidery}`,
+    message_en: `Suggestion: ${garmentType} ${color} ${fabric}`,
     reasons_ar: ["يتوافق مع المناسبة", "يناسب المناخ العماني", "خيار شائع"],
     reasons_en: ["Matches occasion", "Omani climate", "Popular choice"],
   };

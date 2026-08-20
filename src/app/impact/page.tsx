@@ -63,7 +63,7 @@ export default function ImpactPage() {
         </div>
 
         <div className="text-center mt-12">
-          <p className="text-xs text-muted-foreground mb-4">{t("Demo Metrics — مقاييس تجريبية", "Demo Metrics — Prototype indicators")}</p>
+          <p className="text-xs text-muted-foreground mb-4">{t("مقاييس المنصة", "Platform metrics")}</p>
           <Link href="/login"><Button size="lg">{t("استكشف المنصة", "Explore Platform")}</Button></Link>
         </div>
       </div>

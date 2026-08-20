@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useLocale } from "@/lib/context/locale-context";
 import { cn } from "@/lib/utils";
 
-const DEMO_PHRASES = [
+const QUICK_PHRASES = [
   "أبغى دشداشة بيضاء رسمية صيفية",
   "أبغى عباية سوداء أنيقة",
   "أريد تطريز ذهبي بسيط",
@@ -22,8 +22,8 @@ interface VoiceInputProps {
 export function VoiceInput({ onTranscript, onListeningChange, className }: VoiceInputProps) {
   const { t } = useLocale();
   const [listening, setListening] = useState(false);
-  const [demoMode, setDemoMode] = useState(false);
-  const [showDemoMenu, setShowDemoMenu] = useState(false);
+  const [phraseMode, setPhraseMode] = useState(false);
+  const [showPhraseMenu, setShowPhraseMenu] = useState(false);
   const recognitionRef = useRef<{
     stop: () => void;
     abort: () => void;
@@ -45,10 +45,10 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
   }, [setListeningState]);
 
   const applyTranscript = useCallback(
-    (text: string, isDemo = false) => {
-      setDemoMode(isDemo);
+    (text: string, fromPhrase = false) => {
+      setPhraseMode(fromPhrase);
       setListeningState(false);
-      setShowDemoMenu(false);
+      setShowPhraseMenu(false);
       onTranscript(text);
     },
     [onTranscript, setListeningState]
@@ -80,8 +80,8 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
     const SpeechRecognition = w.SpeechRecognition ?? w.webkitSpeechRecognition;
 
     if (!SpeechRecognition) {
-      setDemoMode(true);
-      setShowDemoMenu(true);
+      setPhraseMode(true);
+      setShowPhraseMenu(true);
       return;
     }
 
@@ -99,10 +99,10 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
       recognition.onerror = (event) => {
         setListeningState(false);
         if (event.error === "not-allowed") {
-          setDemoMode(true);
-          setShowDemoMenu(true);
+          setPhraseMode(true);
+          setShowPhraseMenu(true);
         } else if (event.error !== "aborted") {
-          applyTranscript(DEMO_PHRASES[0], true);
+          applyTranscript(QUICK_PHRASES[0], true);
         }
       };
 
@@ -110,10 +110,10 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
       recognitionRef.current = recognition;
       recognition.start();
       setListeningState(true);
-      setDemoMode(false);
+      setPhraseMode(false);
     } catch {
-      setDemoMode(true);
-      setShowDemoMenu(true);
+      setPhraseMode(true);
+      setShowPhraseMenu(true);
     }
   };
 
@@ -138,17 +138,17 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
             {t("صوت", "Voice")}
           </>
         )}
-        {demoMode && !listening && (
-          <span className="text-[10px] opacity-70">Demo</span>
+        {phraseMode && !listening && (
+          <span className="text-[10px] opacity-70">{t("عبارة", "Phrase")}</span>
         )}
       </Button>
 
-      {showDemoMenu && (
+      {showPhraseMenu && (
         <div className="absolute bottom-full mb-2 start-0 z-50 min-w-[240px] rounded-xl border bg-white shadow-lg p-2 space-y-1">
           <p className="text-[10px] text-muted-foreground px-2 py-1">
-            {t("Demo Voice — اختر عبارة", "Demo Voice — pick a phrase")}
+            {t("اختر عبارة جاهزة", "Pick a quick phrase")}
           </p>
-          {DEMO_PHRASES.map((phrase) => (
+          {QUICK_PHRASES.map((phrase) => (
             <button
               key={phrase}
               type="button"
@@ -161,7 +161,7 @@ export function VoiceInput({ onTranscript, onListeningChange, className }: Voice
           <button
             type="button"
             className="w-full text-xs text-muted-foreground py-1 flex items-center justify-center gap-1"
-            onClick={() => setShowDemoMenu(false)}
+            onClick={() => setShowPhraseMenu(false)}
           >
             <ChevronDown className="h-3 w-3" />
             {t("إغلاق", "Close")}

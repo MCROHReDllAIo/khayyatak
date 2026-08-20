@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { SESSION_MAX_AGE_SEC } from "@/lib/auth/cookies";
 
 const SCRYPT_PARAMS = { N: 16384, r: 8, p: 1, maxmem: 64 * 1024 * 1024 };
 
@@ -32,7 +33,7 @@ export interface SessionPayload {
   exp: number;
 }
 
-export function signSession(payload: Omit<SessionPayload, "exp">, maxAgeSec = 60 * 60 * 24 * 7): string {
+export function signSession(payload: Omit<SessionPayload, "exp">, maxAgeSec = SESSION_MAX_AGE_SEC): string {
   const body: SessionPayload = { ...payload, exp: Math.floor(Date.now() / 1000) + maxAgeSec };
   const data = Buffer.from(JSON.stringify(body)).toString("base64url");
   const sig = createHmac("sha256", getAuthSecret()).update(data).digest("base64url");

@@ -23,8 +23,8 @@ export default function InventoryPage() {
       unit: "متر",
       consumption_rate: 1,
       ai_forecast_days: 20,
-      ai_recommendation_ar: "مخزون جديد — Demo",
-      ai_recommendation_en: "New stock — Demo",
+      ai_recommendation_ar: "مخزون جديد",
+      ai_recommendation_en: "New stock",
       low_stock: false,
     });
     setNewName("");
@@ -34,7 +34,7 @@ export default function InventoryPage() {
     <div className="space-y-6">
       <div>
         <h1 className="editorial-title">{t("المخزون الذكي", "Smart Inventory")}</h1>
-        <p className="text-sm text-muted-foreground">{t("Demo AI — إدارة مخزون القماش", "Demo AI fabric inventory")}</p>
+        <p className="text-sm text-muted-foreground">{t("إدارة مخزون القماش", "Fabric inventory management")}</p>
       </div>
 
       <div className="flex gap-2">

@@ -225,7 +225,7 @@ Never claim certified QC. Be honest — AI Estimate only.`;
 
   return {
     pass: 92,
-    issue: "التطريز يبدو مختلفًا قليلًا عن التصميم — Demo AI Estimate",
+    issue: "التطريز يبدو مختلفًا قليلًا عن التصميم — تقدير بالذكاء الاصطناعي",
     usedRealAI: false,
   };
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { signInWithPostgres } from "@/lib/auth/postgres-auth";
 import { SESSION_COOKIE, signSession } from "@/lib/auth/session";
+import { sessionCookieOptions } from "@/lib/auth/cookies";
 import { isPostgresAuthEnabled } from "@/lib/auth/config";
 
 export async function POST(request: Request) {
@@ -26,13 +27,7 @@ export async function POST(request: Request) {
   });
 
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
+  cookieStore.set(SESSION_COOKIE, token, sessionCookieOptions());
 
   return NextResponse.json({ profile: result.profile });
 }

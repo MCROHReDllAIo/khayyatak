@@ -59,7 +59,7 @@ export default function QualityPage() {
             <div className="flex items-center gap-2 mb-4">
               <Check className="h-6 w-6 text-primary" />
               <span className="font-bold">{t("Quality Check", "Quality Check")}: {result.pass}%</span>
-              <span className="text-xs text-muted-foreground">({result.usedRealAI ? "OpenRouter" : "Demo AI"})</span>
+              <span className="text-xs text-muted-foreground">({result.usedRealAI ? "OpenRouter" : "Built-in AI"})</span>
             </div>
             <Progress value={result.pass} className="mb-4" />
             {result.issue && (

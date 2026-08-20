@@ -32,7 +32,7 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-navy">{t("التحليلات", "Analytics")}</h1>
-        <p className="text-xs text-muted-foreground">{t("بيانات تجريبية — Demo Data", "Prototype demo data")}</p>
+        <p className="text-xs text-muted-foreground">{t("بيانات من قاعدة البيانات", "Data from the database")}</p>
       </div>
 
       <AIInsightCard title={t("توقع AI", "AI Forecast")} message={forecast.insight_ar} />

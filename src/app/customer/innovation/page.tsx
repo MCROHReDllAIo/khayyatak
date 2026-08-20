@@ -1,0 +1,100 @@
+"use client";
+
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { Wand2, Upload, PenLine, Palette, ImageIcon, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { InnovationStudio } from "@/components/innovation/InnovationStudio";
+import { useLocale } from "@/lib/context/locale-context";
+
+export default function InnovationPage() {
+  const { t } = useLocale();
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  const startSession = async (title?: string) => {
+    setCreating(true);
+    try {
+      const res = await fetch("/api/customer/innovation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: title ?? "تصميم جديد" }),
+      });
+      const data = await res.json();
+      if (data.session?.id) setSessionId(data.session.id);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  if (sessionId) {
+    return <InnovationStudio sessionId={sessionId} onBack={() => setSessionId(null)} />;
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-10 py-4">
+      <motion.header initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center space-y-3">
+        <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-primary text-xs font-semibold">
+          <Wand2 className="h-3.5 w-3.5" />
+          ابتكار · Innovation Studio
+        </div>
+        <h1 className="editorial-title text-3xl md:text-4xl">ابتكريها.</h1>
+        <p className="text-muted-foreground text-sm max-w-md mx-auto leading-relaxed">
+          {t(
+            "فكرتك تبدأ منك.\nالتصميم نبنيه معك.",
+            "Your idea starts with you.\nWe build the design together."
+          )}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {t("حوّلي فكرتك إلى تصميم.", "Turn your idea into a design.")}
+        </p>
+      </motion.header>
+
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="grid sm:grid-cols-3 gap-4"
+      >
+        {[
+          { icon: Upload, ar: "أرفع صورة", en: "Upload image", action: () => startSession("من صورة") },
+          { icon: PenLine, ar: "اكتب فكرتي", en: "Write my idea", action: () => startSession("من فكرة") },
+          { icon: Wand2, ar: "ابدأ من الصفر", en: "Start blank", action: () => startSession() },
+        ].map(({ icon: Icon, ar, en, action }) => (
+          <button
+            key={ar}
+            type="button"
+            disabled={creating}
+            onClick={action}
+            className="group rounded-2xl border-2 border-dashed border-primary/20 bg-white p-6 text-center hover:border-primary/50 hover:bg-primary/5 transition-all"
+          >
+            <Icon className="h-8 w-8 text-primary mx-auto mb-3 group-hover:scale-110 transition-transform" />
+            <p className="font-semibold text-navy">{t(ar, en)}</p>
+          </button>
+        ))}
+      </motion.div>
+
+      <div className="flex flex-wrap justify-center gap-3">
+        <Button variant="outline" size="sm" className="gap-1" disabled={creating} onClick={() => startSession("لون")}>
+          <Palette className="h-3.5 w-3.5" /> {t("استخدم لون", "Use a color")}
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1" disabled={creating} onClick={() => startSession("قماش")}>
+          <ImageIcon className="h-3.5 w-3.5" /> {t("ارفع صورة قماش", "Upload fabric photo")}
+        </Button>
+      </div>
+
+      {creating && (
+        <div className="flex justify-center items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("جاري فتح الاستوديو...", "Opening studio...")}
+        </div>
+      )}
+
+      <p className="text-center text-[10px] text-amber-700 max-w-lg mx-auto">
+        {t(
+          "التصميم مقترح بالذكاء الاصطناعي. الخياط وحده يؤكد إمكانية التنفيذ والسعر النهائي.",
+          "Design is AI-suggested. Only the tailor confirms feasibility and final price."
+        )}
+      </p>
+    </div>
+  );
+}

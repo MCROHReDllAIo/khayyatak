@@ -22,6 +22,7 @@ const NAV = [
   { href: "/tailor/dashboard", icon: LayoutDashboard, ar: "لوحة التحكم", en: "Dashboard" },
   { href: "/tailor/ai", icon: Sparkles, ar: "مساعد AI", en: "AI Brain" },
   { href: "/tailor/orders", icon: ShoppingBag, ar: "الطلبات", en: "Orders" },
+  { href: "/tailor/innovation", icon: Sparkles, ar: "ابتكار", en: "Innovation" },
   { href: "/tailor/pricing", icon: DollarSign, ar: "التسعير", en: "Pricing" },
   { href: "/tailor/inventory", icon: Package, ar: "المخزون", en: "Inventory" },
   { href: "/tailor/analytics", icon: BarChart3, ar: "التحليلات", en: "Analytics" },

@@ -39,6 +39,42 @@ async function getDb() {
   return createClient();
 }
 
+async function withPostgres<T>(fallback: T, query: () => Promise<T>): Promise<T> {
+  if (!isPostgresConfigured()) return fallback;
+  try {
+    return await query();
+  } catch {
+    return fallback;
+  }
+}
+
+function revenueDays(period: string): number {
+  if (period === "7d") return 7;
+  if (period === "6m") return 180;
+  if (period === "1y") return 365;
+  return 30;
+}
+
+function bucketRevenueOrders(
+  list: Array<{ created_at: string; total_price?: number | null }>,
+  tab: string
+) {
+  if (list.length === 0) return [];
+  const buckets: Record<string, { value: number; prev: number }> = {};
+  for (const o of list) {
+    const d = new Date(o.created_at);
+    const label = d.toLocaleDateString("ar-OM", { month: "short", day: "numeric" });
+    if (!buckets[label]) buckets[label] = { value: 0, prev: 0 };
+    if (tab === "orders" || tab === "customers" || tab === "tailors") buckets[label].value += 1;
+    else buckets[label].value += Number(o.total_price ?? 0);
+  }
+  return Object.entries(buckets).map(([label, v]) => ({
+    label,
+    value: Math.round(v.value),
+    prev: Math.round(v.value * 0.9),
+  }));
+}
+
 export async function getPlatformKPIs(range: DateRange = "30d") {
   const supabase = await getDb();
   if (!supabase) {
@@ -400,6 +436,15 @@ export async function getOrderOperations() {
       }>(`SELECT id, status, created_at, estimated_delivery FROM orders`);
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const delayed = list.filter((o) => {
+        if (!o.estimated_delivery || o.status === "delivered" || o.status === "cancelled") return false;
+        return new Date(o.estimated_delivery) < today;
+      });
+      const dueToday = list.filter((o) => {
+        if (!o.estimated_delivery || o.status === "delivered") return false;
+        const d = new Date(o.estimated_delivery);
+        return d >= today && d < new Date(today.getTime() + 86400000);
+      });
       const statuses = [
         "received",
         "measurements_confirmed",
@@ -411,8 +456,8 @@ export async function getOrderOperations() {
       ] as const;
       return {
         active: list.filter((o) => o.status !== "delivered" && o.status !== "cancelled").length,
-        delayed: 0,
-        dueToday: 0,
+        delayed: delayed.length,
+        dueToday: dueToday.length,
         ready: list.filter((o) => o.status === "ready").length,
         delivered: list.filter((o) => o.status === "delivered").length,
         pipeline: statuses.map((status) => ({
@@ -553,16 +598,39 @@ export async function getSystemHealth() {
 export async function getAIAnalyticsFromLogs() {
   const supabase = await getDb();
   if (!supabase) {
-    return {
-      requests: 0,
-      designs: 0,
-      measurements: 0,
-      matches: 0,
-      conversations: 0,
-      topFeature_ar: "—",
-      topFeature_en: "—",
-      chart: [] as Array<{ feature: string; value: number }>,
-    };
+    return withPostgres(
+      {
+        requests: 0,
+        designs: 0,
+        measurements: 0,
+        matches: 0,
+        conversations: 0,
+        topFeature_ar: "—",
+        topFeature_en: "—",
+        chart: [] as Array<{ feature: string; value: number }>,
+      },
+      async () => {
+        const { rows: logs } = await pgQuery<{ feature: string; status: string }>(
+          `SELECT feature, status FROM ai_call_logs`
+        );
+        const byFeature: Record<string, number> = {};
+        for (const log of logs) {
+          byFeature[log.feature] = (byFeature[log.feature] ?? 0) + 1;
+        }
+        const chart = Object.entries(byFeature).map(([feature, value]) => ({ feature, value }));
+        const top = chart.sort((a, b) => b.value - a.value)[0];
+        return {
+          requests: logs.length,
+          designs: byFeature["design"] ?? 0,
+          measurements: byFeature["measurement"] ?? 0,
+          matches: byFeature["match"] ?? 0,
+          conversations: byFeature["chat"] ?? 0,
+          topFeature_ar: top?.feature ?? "—",
+          topFeature_en: top?.feature ?? "—",
+          chart,
+        };
+      }
+    );
   }
   const { data: logs } = await supabase.from("ai_call_logs").select("feature, status");
 
@@ -590,13 +658,40 @@ export async function getAIAnalyticsFromLogs() {
 export async function getAIPerformanceFromLogs() {
   const supabase = await getDb();
   if (!supabase) {
-    return {
-      successRate: 0,
-      avgResponseSec: 0,
-      fallbackPct: 0,
-      providerStatus: process.env.OPENROUTER_API_KEY ? "OpenRouter" : "Not configured",
-      hasData: false,
-    };
+    return withPostgres(
+      {
+        successRate: 0,
+        avgResponseSec: 0,
+        fallbackPct: 0,
+        providerStatus: process.env.OPENROUTER_API_KEY ? "OpenRouter" : "Not configured",
+        hasData: false,
+      },
+      async () => {
+        const { rows: logs } = await pgQuery<{ status: string; latency_ms: number | null }>(
+          `SELECT status, latency_ms FROM ai_call_logs`
+        );
+        if (logs.length === 0) {
+          return {
+            successRate: 0,
+            avgResponseSec: 0,
+            fallbackPct: 0,
+            providerStatus: process.env.OPENROUTER_API_KEY ? "OpenRouter" : "Not configured",
+            hasData: false,
+          };
+        }
+        const success = logs.filter((l) => l.status === "success").length;
+        const fallback = logs.filter((l) => l.status === "fallback").length;
+        const latencies = logs.filter((l) => l.latency_ms).map((l) => l.latency_ms as number);
+        const avgMs = latencies.length ? latencies.reduce((a, b) => a + b, 0) / latencies.length : 0;
+        return {
+          successRate: Math.round((success / logs.length) * 1000) / 10,
+          avgResponseSec: Math.round((avgMs / 1000) * 10) / 10,
+          fallbackPct: Math.round((fallback / logs.length) * 1000) / 10,
+          providerStatus: process.env.OPENROUTER_API_KEY ? "OpenRouter" : "OpenAI",
+          hasData: true,
+        };
+      }
+    );
   }
   const { data: logs } = await supabase
     .from("ai_call_logs")
@@ -689,6 +784,15 @@ export async function getExecutiveInsights() {
     lowStock = low.data ?? [];
     const pending = await db.from("tailors").select("id", { count: "exact", head: true }).eq("verification_status", "pending");
     pendingVerify = pending.count ?? 0;
+  } else {
+    await withPostgres(undefined, async () => {
+      const low = await pgQuery(`SELECT id FROM inventory WHERE low_stock = true`);
+      lowStock = low.rows;
+      const pending = await pgQuery<{ n: number }>(
+        `SELECT COUNT(*)::int AS n FROM tailors WHERE verification_status = 'pending'`
+      );
+      pendingVerify = Number(pending.rows[0]?.n ?? 0);
+    });
   }
 
   const insights = [];
@@ -761,12 +865,27 @@ export async function getLivePlatformStatus() {
 export async function getCriticalAlerts() {
   const ops = await getOrderOperations();
   const supabase = await getDb();
-  if (!supabase) return [];
-  const { data: lowStock } = await supabase.from("inventory").select("id").eq("low_stock", true);
-  const { count: pending } = await supabase
-    .from("tailors")
-    .select("id", { count: "exact", head: true })
-    .eq("verification_status", "pending");
+  let lowStock: unknown[] = [];
+  let pending = 0;
+
+  if (supabase) {
+    const { data } = await supabase.from("inventory").select("id").eq("low_stock", true);
+    lowStock = data ?? [];
+    const pendingRes = await supabase
+      .from("tailors")
+      .select("id", { count: "exact", head: true })
+      .eq("verification_status", "pending");
+    pending = pendingRes.count ?? 0;
+  } else {
+    await withPostgres(undefined, async () => {
+      const low = await pgQuery(`SELECT id FROM inventory WHERE low_stock = true`);
+      lowStock = low.rows;
+      const pendingRes = await pgQuery<{ n: number }>(
+        `SELECT COUNT(*)::int AS n FROM tailors WHERE verification_status = 'pending'`
+      );
+      pending = Number(pendingRes.rows[0]?.n ?? 0);
+    });
+  }
 
   const alerts = [];
   if (ops.delayed > 0) {
@@ -807,10 +926,19 @@ export async function getCriticalAlerts() {
 
 export async function getRevenueAnalytics(tab: string = "gmv", period: string = "30d") {
   const supabase = await getDb();
-  if (!supabase) return [];
-  const days = period === "7d" ? 7 : period === "6m" ? 180 : period === "1y" ? 365 : 30;
+  const days = revenueDays(period);
   const since = new Date();
   since.setDate(since.getDate() - days);
+
+  if (!supabase) {
+    return withPostgres([], async () => {
+      const { rows } = await pgQuery<{ created_at: string; total_price: number | null }>(
+        `SELECT created_at, total_price FROM orders WHERE created_at >= $1 ORDER BY created_at`,
+        [since.toISOString()]
+      );
+      return bucketRevenueOrders(rows, tab);
+    });
+  }
 
   const { data: orders } = await supabase
     .from("orders")
@@ -964,7 +1092,37 @@ export async function getTopTailors() {
 export async function getFashionTrends() {
   const supabase = await getDb();
   if (!supabase) {
-    return { colors: [], fabrics: [], garments: [], embroidery: [], styles: [], hasData: false };
+    return withPostgres(
+      { colors: [], fabrics: [], garments: [], embroidery: [], styles: [], hasData: false },
+      async () => {
+        const { rows: designs } = await pgQuery<{ config: { color?: string; fabric?: string } | null }>(
+          `SELECT config FROM designs`
+        );
+        const colors: Record<string, number> = {};
+        const fabrics: Record<string, number> = {};
+        for (const d of designs) {
+          const cfg = d.config;
+          if (cfg?.color) colors[cfg.color] = (colors[cfg.color] ?? 0) + 1;
+          if (cfg?.fabric) fabrics[cfg.fabric] = (fabrics[cfg.fabric] ?? 0) + 1;
+        }
+        const toPct = (map: Record<string, number>) => {
+          const total = Object.values(map).reduce((a, b) => a + b, 0);
+          if (total === 0) return [];
+          return Object.entries(map)
+            .map(([name, count]) => ({ name, pct: Math.round((count / total) * 100) }))
+            .sort((a, b) => b.pct - a.pct)
+            .slice(0, 5);
+        };
+        return {
+          colors: toPct(colors),
+          fabrics: toPct(fabrics),
+          garments: [],
+          embroidery: [],
+          styles: [],
+          hasData: designs.length > 0,
+        };
+      }
+    );
   }
   const { data: designs } = await supabase.from("designs").select("config");
 
@@ -998,7 +1156,28 @@ export async function getFashionTrends() {
 export async function getInventoryIntelligence() {
   const supabase = await getDb();
   if (!supabase) {
-    return { lowStockMerchants: 0, criticalMaterials: [], mostRequested: [], forecastShortages: [] };
+    return withPostgres(
+      { lowStockMerchants: 0, criticalMaterials: [], mostRequested: [], forecastShortages: [] },
+      async () => {
+        const low = await pgQuery<{ tailor_id: string; fabric_name_ar: string }>(
+          `SELECT tailor_id, fabric_name_ar FROM inventory WHERE low_stock = true`
+        );
+        const all = await pgQuery<{ fabric_name_ar: string }>(
+          `SELECT fabric_name_ar FROM inventory LIMIT 5`
+        );
+        const lowRows = low.rows;
+        return {
+          lowStockMerchants: new Set(lowRows.map((i) => i.tailor_id)).size,
+          criticalMaterials: lowRows.map((i) => i.fabric_name_ar),
+          mostRequested: all.rows.map((i) => i.fabric_name_ar),
+          forecastShortages: lowRows.slice(0, 3).map((i) => ({
+            material: i.fabric_name_ar,
+            merchants: 1,
+            action: "/admin/inventory",
+          })),
+        };
+      }
+    );
   }
   const { data: low } = await supabase.from("inventory").select("*").eq("low_stock", true);
   const { data: all } = await supabase.from("inventory").select("fabric_name_ar").limit(5);
@@ -1018,7 +1197,33 @@ export async function getInventoryIntelligence() {
 export async function getMarketplacePerformance() {
   const supabase = await getDb();
   if (!supabase) {
-    return { topCategory: "—", topCity: "—", topProduct: "—", avgOrder: 0, conversion: 0, repeatRate: 0 };
+    return withPostgres(
+      { topCategory: "—", topCity: "—", topProduct: "—", avgOrder: 0, conversion: 0, repeatRate: 0 },
+      async () => {
+        const orders = await pgQuery<{ total_price: number | null; status: string }>(
+          `SELECT total_price, status FROM orders`
+        );
+        const list = orders.rows;
+        const gmv = list.reduce((s, o) => s + Number(o.total_price ?? 0), 0);
+        const delivered = list.filter((o) => o.status === "delivered").length;
+        const topCity = await pgQuery<{ name_ar: string }>(
+          `SELECT c.name_ar
+           FROM cities c
+           LEFT JOIN tailors t ON t.city_id = c.id
+           GROUP BY c.id, c.name_ar
+           ORDER BY COUNT(t.id) DESC
+           LIMIT 1`
+        );
+        return {
+          topCategory: "—",
+          topCity: topCity.rows[0]?.name_ar ?? "—",
+          topProduct: "—",
+          avgOrder: list.length > 0 ? Math.round((gmv / list.length) * 100) / 100 : 0,
+          conversion: 0,
+          repeatRate: list.length > 0 ? Math.round((delivered / list.length) * 100) : 0,
+        };
+      }
+    );
   }
   const { data: orders } = await supabase.from("orders").select("total_price, status");
   const list = orders ?? [];
@@ -1086,7 +1291,30 @@ function designsDistinct(_count: number, reg: number) {
 
 export async function getPlatformActivity() {
   const supabase = await getDb();
-  if (!supabase) return [];
+  if (!supabase) {
+    return withPostgres([], async () => {
+      const audit = await pgQuery<{ action: string; created_at: string }>(
+        `SELECT action, created_at FROM audit_logs ORDER BY created_at DESC LIMIT 10`
+      );
+      if (audit.rows.length > 0) {
+        return audit.rows.map((a) => ({
+          id: a.created_at,
+          message_ar: a.action,
+          message_en: a.action,
+          time_ar: timeAgo(a.created_at),
+        }));
+      }
+      const orders = await pgQuery<{ id: string; created_at: string }>(
+        `SELECT id, created_at FROM orders ORDER BY created_at DESC LIMIT 5`
+      );
+      return orders.rows.map((o) => ({
+        id: o.id,
+        message_ar: `تم إنشاء طلب جديد`,
+        message_en: `New order created`,
+        time_ar: timeAgo(o.created_at),
+      }));
+    });
+  }
   const { data: audit } = await supabase
     .from("audit_logs")
     .select("action, payload, created_at")
@@ -1129,10 +1357,15 @@ export async function getNationalAIPanel() {
   const topCity = coverage.sort((a, b) => b.orders - a.orders)[0];
   const trends = await getFashionTrends();
   const db = await getDb();
-  let orders: Array<{ total_price?: number }> = [];
+  let orders: Array<{ total_price?: number | null }> = [];
   if (db) {
     const res = await db.from("orders").select("total_price");
     orders = res.data ?? [];
+  } else {
+    await withPostgres(undefined, async () => {
+      const res = await pgQuery<{ total_price: number | null }>(`SELECT total_price FROM orders`);
+      orders = res.rows;
+    });
   }
   const gmv = (orders ?? []).reduce((s, o) => s + Number(o.total_price ?? 0), 0);
   const count = (orders ?? []).length;
@@ -1162,17 +1395,35 @@ export async function logAICall(entry: {
 }) {
   try {
     const supabase = await createServiceClient();
-    if (!supabase) return;
-    await supabase.from("ai_call_logs").insert({
-      user_id: entry.userId ?? null,
-      feature: entry.feature,
-      provider: entry.provider,
-      model: entry.model,
-      status: entry.status,
-      latency_ms: entry.latencyMs,
-      tokens: entry.tokens,
-      error_message: entry.errorMessage,
-    });
+    if (supabase) {
+      await supabase.from("ai_call_logs").insert({
+        user_id: entry.userId ?? null,
+        feature: entry.feature,
+        provider: entry.provider,
+        model: entry.model,
+        status: entry.status,
+        latency_ms: entry.latencyMs,
+        tokens: entry.tokens,
+        error_message: entry.errorMessage,
+      });
+      return;
+    }
+    if (isPostgresConfigured()) {
+      await pgQuery(
+        `INSERT INTO ai_call_logs (user_id, feature, provider, model, status, latency_ms, tokens, error_message)
+         VALUES ($1, $2, $3, $4, $5::ai_call_status, $6, $7, $8)`,
+        [
+          entry.userId ?? null,
+          entry.feature,
+          entry.provider,
+          entry.model ?? null,
+          entry.status,
+          entry.latencyMs ?? null,
+          entry.tokens ?? null,
+          entry.errorMessage ?? null,
+        ]
+      );
+    }
   } catch {
     /* logging must not break requests */
   }
