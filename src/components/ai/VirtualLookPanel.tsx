@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Upload, X, Loader2, Save, RefreshCw, ShoppingBag } from "lucide-react";
+import { Upload, X, Loader2, RefreshCw, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MatchedProduct } from "@/lib/db/products";
 

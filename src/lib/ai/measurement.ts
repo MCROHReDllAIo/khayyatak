@@ -35,8 +35,10 @@ function generateRealisticMeasurements(): Measurements {
 }
 
 export async function estimateMeasurements(
-  _imageData?: string
+  // Reserved for future vision-based measurement from uploaded photo
+  imageData?: string
 ): Promise<Measurements> {
+  void imageData;
   await sleep(3000);
   return generateRealisticMeasurements();
 }

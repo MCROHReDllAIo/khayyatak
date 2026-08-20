@@ -46,7 +46,6 @@ export function aggregatePlatformStats(orders: Order[]): PlatformStats {
     .slice(0, 5);
 
   const whiteCount = orders.filter((o) => o.design.colorKey === "white").length;
-  const growthPercent = totalOrders > 0 ? Math.round((whiteCount / totalOrders) * 100 * 0.23) : 23;
 
   return {
     totalOrders,
@@ -56,7 +55,8 @@ export function aggregatePlatformStats(orders: Order[]): PlatformStats {
     growthPercent: totalOrders > 0 ? Math.round((whiteCount / totalOrders) * 100) : 0,
     ordersByCity,
     popularColors,
-    popularFabrics,  };
+    popularFabrics,
+  };
 }
 
 export function computeOverdueOrders(orders: Order[], tailorId?: string): Order[] {

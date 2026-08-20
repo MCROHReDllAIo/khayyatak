@@ -111,7 +111,6 @@ export async function getPlatformKPIs(range: DateRange = "30d") {
   const deliveredCustomers = new Set(
     allOrders.filter((o) => o.status === "delivered").map((o) => o.customer_id)
   );
-  const allCustomerIds = new Set(allOrders.map((o) => o.customer_id));
   const repeatCustomers = [...deliveredCustomers].filter((cid) => {
     const count = allOrders.filter((o) => o.customer_id === cid && o.status === "delivered").length;
     return count > 1;

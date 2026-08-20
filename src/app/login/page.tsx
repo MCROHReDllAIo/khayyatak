@@ -45,6 +45,8 @@ function LoginForm() {
     if (authLoading || !isAuthenticated || !userRole) return;
     const dest = redirect !== "/" ? redirect : roleHome[userRole];
     router.replace(dest);
+    // roleHome is a stable inline map of static routes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, isAuthenticated, userRole, redirect, router]);
 
   async function handleSubmit(e: React.FormEvent) {

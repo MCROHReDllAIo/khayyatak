@@ -13,7 +13,7 @@ interface AIInsightCardProps {
   className?: string;
 }
 
-export function AIInsightCard({ title, message, type = "general", className }: AIInsightCardProps) {
+export function AIInsightCard({ title, message, className }: AIInsightCardProps) {
   const { t } = useLocale();
 
   return (

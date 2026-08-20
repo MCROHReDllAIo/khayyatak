@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireApiUser } from "@/lib/auth/api-auth";
-import { getSessionForCustomer, addDesignVersionFromSpec } from "@/lib/db/innovation";
+import { getSessionForCustomer } from "@/lib/db/innovation";
 import { generateDesignVisualization, getVisualizationConfig } from "@/lib/ai/innovation-visualization";
 import { pgQuery } from "@/lib/db/postgres";
 

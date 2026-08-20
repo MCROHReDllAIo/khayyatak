@@ -84,7 +84,7 @@ export function MatchScoreHero({
           </AnimatePresence>
           {!revealed && (
             <div className="mt-4 flex flex-wrap gap-2">
-              {REASON_KEYS.map((r, i) => (
+              {REASON_KEYS.map((r) => (
                 <span
                   key={r.key}
                   className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md border border-border/60 text-muted-foreground"

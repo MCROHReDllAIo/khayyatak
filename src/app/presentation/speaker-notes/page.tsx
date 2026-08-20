@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Mic, AlertTriangle } from "lucide-react";
 import { PITCH_SLIDES, JUDGE_QUESTIONS, LIVE_DEMO_SCRIPT, DEMO_LINKS } from "@/lib/presentation/content";
 
-import { brandTitle, BRAND } from "@/lib/constants/brand";
+import { BRAND } from "@/lib/constants/brand";
 
 export const metadata = {
   title: `Speaker Notes — ${BRAND.nameEn} Pitch`,

@@ -6,7 +6,6 @@ import {
   Wand2,
   Loader2,
   Send,
-  RotateCcw,
   Sparkles,
   CheckCircle2,
   Store,

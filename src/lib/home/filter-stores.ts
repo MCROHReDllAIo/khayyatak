@@ -118,7 +118,7 @@ export function filterAndRankStores(
   const cat = STORE_CATEGORIES.find((c) => c.id === filter.category);
   const q = filter.query.trim().toLowerCase();
 
-  let list = tailors.filter((t) => {
+  const list = tailors.filter((t) => {
     if (filter.selectedTailorId && t.id === filter.selectedTailorId) return true;
     if (filter.cityId !== "all" && t.city_id !== filter.cityId) return false;
     if (cat && cat.id !== "all" && cat.specs.length) {

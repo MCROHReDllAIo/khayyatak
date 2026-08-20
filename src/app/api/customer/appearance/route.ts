@@ -78,7 +78,7 @@ export async function DELETE() {
 }
 
 /** Authenticated fetch of user's own image — never public */
-export async function PUT(request: Request) {
+export async function PUT(_request: Request) {
   const auth = await requireApiUser();
   if ("error" in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });

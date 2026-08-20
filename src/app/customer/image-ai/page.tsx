@@ -1,10 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { Sparkles, Wand2 } from "lucide-react";
+import { Wand2 } from "lucide-react";
 import { analyzeGarmentImage, analysisToDesignConfig } from "@/lib/ai/image-understanding";
 import type { ImageAnalysisResult } from "@/lib/ai/image-understanding";
 import { useAppState } from "@/lib/context/app-context";
