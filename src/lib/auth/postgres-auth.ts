@@ -28,6 +28,25 @@ function mapProfile(row: Record<string, unknown>): AuthProfile {
   };
 }
 
+function friendlySignupError(err: unknown): string {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  const lower = msg.toLowerCase();
+  if (
+    lower.includes("auth_accounts") ||
+    lower.includes("email already") ||
+    (lower.includes("duplicate") && lower.includes("email"))
+  ) {
+    return "هذا البريد مسجّل مسبقًا. سجّل الدخول بدلًا من إنشاء حساب.";
+  }
+  if (lower.includes("profiles_pkey") || lower.includes("duplicate key")) {
+    return "الحساب موجود مسبقًا. سجّل الدخول أو استخدم بريدًا آخر.";
+  }
+  if (lower.includes("password")) {
+    return "كلمة المرور قصيرة جدًا (6 أحرف على الأقل).";
+  }
+  return "تعذر إنشاء الحساب. حاول مرة أخرى.";
+}
+
 export async function getProfileById(userId: string): Promise<AuthProfile | null> {
   const { rows } = await pgQuery<Record<string, unknown>>(
     `SELECT id, email, full_name, full_name_ar, role, city_id, phone, avatar_url, created_at
@@ -44,10 +63,33 @@ export async function signUpWithPostgres(
   role: UserRole
 ): Promise<{ profile?: AuthProfile; error?: string }> {
   const normalizedEmail = email.trim().toLowerCase();
-  if (password.length < 6) return { error: "Password must be at least 6 characters" };
+  if (password.length < 6) {
+    return { error: "كلمة المرور قصيرة جدًا (6 أحرف على الأقل)." };
+  }
 
-  const existing = await pgQuery(`SELECT 1 FROM auth_accounts WHERE lower(email) = $1`, [normalizedEmail]);
-  if (existing.rowCount) return { error: "Email already registered" };
+  const existingAccount = await pgQuery(
+    `SELECT 1 FROM auth_accounts WHERE lower(email) = $1`,
+    [normalizedEmail]
+  );
+  if (existingAccount.rowCount) {
+    return { error: "هذا البريد مسجّل مسبقًا. سجّل الدخول بدلًا من إنشاء حساب." };
+  }
+
+  const existingProfile = await pgQuery(
+    `SELECT 1 FROM profiles WHERE lower(email) = $1`,
+    [normalizedEmail]
+  );
+  if (existingProfile.rowCount) {
+    return { error: "هذا البريد مسجّل مسبقًا. سجّل الدخول بدلًا من إنشاء حساب." };
+  }
+
+  const existingAuthUser = await pgQuery(
+    `SELECT 1 FROM auth.users WHERE lower(email) = $1`,
+    [normalizedEmail]
+  );
+  if (existingAuthUser.rowCount) {
+    return { error: "هذا البريد مسجّل مسبقًا. سجّل الدخول بدلًا من إنشاء حساب." };
+  }
 
   const passwordHash = hashPassword(password);
 
@@ -66,9 +108,16 @@ export async function signUpWithPostgres(
     const userId = userRes.rows[0]?.id;
     if (!userId) throw new Error("Failed to create user");
 
+    // Trigger `on_auth_user_created` already inserts a profiles row.
+    // Upsert so we never hit profiles_pkey, and we set name/role correctly.
     await db.query(
       `INSERT INTO profiles (id, email, full_name, full_name_ar, role)
-       VALUES ($1, $2, $3, $3, $4)`,
+       VALUES ($1, $2, $3, $3, $4)
+       ON CONFLICT (id) DO UPDATE SET
+         email = EXCLUDED.email,
+         full_name = EXCLUDED.full_name,
+         full_name_ar = EXCLUDED.full_name_ar,
+         role = EXCLUDED.role`,
       [userId, normalizedEmail, fullName, role]
     );
 
@@ -78,13 +127,19 @@ export async function signUpWithPostgres(
     );
 
     if (role === "tailor") {
-      const cityRes = await db.query<{ id: string }>(`SELECT id FROM cities ORDER BY name_ar LIMIT 1`);
-      const cityId = cityRes.rows[0]?.id ?? null;
-      await db.query(
-        `INSERT INTO tailors (profile_id, name_ar, name_en, city_id, verified, specializations)
-         VALUES ($1, $2, $2, $3, false, ARRAY['dishdasha'])`,
-        [userId, fullName, cityId]
+      const existingTailor = await db.query(
+        `SELECT 1 FROM tailors WHERE profile_id = $1 LIMIT 1`,
+        [userId]
       );
+      if (!existingTailor.rowCount) {
+        const cityRes = await db.query<{ id: string }>(`SELECT id FROM cities ORDER BY name_ar LIMIT 1`);
+        const cityId = cityRes.rows[0]?.id ?? null;
+        await db.query(
+          `INSERT INTO tailors (profile_id, name_ar, name_en, city_id, verified, specializations)
+           VALUES ($1, $2, $2, $3, false, ARRAY['dishdasha'])`,
+          [userId, fullName, cityId]
+        );
+      }
     }
 
     await db.query("COMMIT");
@@ -92,7 +147,7 @@ export async function signUpWithPostgres(
     return { profile: profile ?? undefined };
   } catch (err) {
     await db.query("ROLLBACK");
-    return { error: err instanceof Error ? err.message : "Sign up failed" };
+    return { error: friendlySignupError(err) };
   } finally {
     db.release();
   }
@@ -109,9 +164,9 @@ export async function signInWithPostgres(
   );
   const account = rows[0];
   if (!account || !verifyPassword(password, account.password_hash)) {
-    return { error: "Invalid email or password" };
+    return { error: "البريد أو كلمة المرور غير صحيحة." };
   }
   const profile = await getProfileById(account.user_id);
-  if (!profile) return { error: "Profile not found" };
+  if (!profile) return { error: "لم يتم العثور على الملف الشخصي." };
   return { profile };
 }
