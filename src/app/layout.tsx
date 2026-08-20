@@ -20,7 +20,10 @@ export const metadata: Metadata = {
   metadataBase: getSiteOrigin(),
   title: brandTitle("ar"),
   description: `${BRAND.taglineAr} ${BRAND.descriptionAr}`,
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: [{ url: "/brand/khayyatak-logo.png", type: "image/png" }],
+    apple: [{ url: "/brand/khayyatak-logo.png" }],
+  },
   openGraph: {
     title: brandTitle("ar"),
     description: BRAND.taglineAr,

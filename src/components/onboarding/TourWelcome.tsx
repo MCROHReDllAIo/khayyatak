@@ -1,8 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import Image from "next/image";
 import { GeometricPattern } from "@/components/ui/GeometricPattern";
 import { BRAND } from "@/lib/constants/brand";
+import { BRAND_LOGO_SRC } from "@/components/brand/BrandLogo";
 import { useLocale } from "@/lib/context/locale-context";
 
 interface TourWelcomeProps {
@@ -50,6 +52,21 @@ export function TourWelcome({ open, onStart, onExplore }: TourWelcomeProps) {
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="relative max-w-md w-full text-center space-y-6"
           >
+            <motion.div
+              className="mx-auto inline-flex rounded-2xl bg-[#f3efe6] p-3"
+              initial={reduced ? false : { opacity: 0, scale: 0.88 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.05, type: "spring", stiffness: 320, damping: 24 }}
+            >
+              <Image
+                src={BRAND_LOGO_SRC}
+                alt={BRAND.nameAr}
+                width={96}
+                height={96}
+                priority
+                className="h-20 w-20 object-contain"
+              />
+            </motion.div>
             <div>
               <motion.p
                 initial={reduced ? false : { opacity: 0, y: 8 }}

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { MotionConfig } from "framer-motion";
 import { LocaleProvider } from "./locale-context";
+import { BrandSplash } from "@/components/brand/BrandSplash";
 import type {
   Profile,
   UserRole,
@@ -711,6 +712,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <AppStateProvider>
           <MotionConfig reducedMotion="user" transition={{ duration: 0.3 }}>
+            <BrandSplash />
             {children}
           </MotionConfig>
         </AppStateProvider>

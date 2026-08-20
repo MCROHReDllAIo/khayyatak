@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { useLocale } from "@/lib/context/locale-context";
 import { BRAND } from "@/lib/constants/brand";
 import { cn } from "@/lib/utils";
@@ -14,26 +15,7 @@ interface LogoProps {
   size?: "sm" | "md" | "lg";
 }
 
-function BrandMark({ size }: { size: "sm" | "md" | "lg" }) {
-  const dim = size === "sm" ? "h-8 w-8" : size === "lg" ? "h-11 w-11" : "h-9 w-9";
-  const text = size === "sm" ? "text-sm" : size === "lg" ? "text-xl" : "text-base";
-
-  return (
-    <div
-      className={cn(
-        "relative shrink-0 rounded-xl p-[1.5px] shadow-[0_2px_12px_-2px_rgba(7,26,51,0.35)]",
-        "bg-gradient-to-br from-omani-gold via-primary to-navy",
-        dim
-      )}
-      aria-hidden
-    >
-      <div className="flex h-full w-full items-center justify-center rounded-[10px] bg-gradient-to-br from-navy via-[#0a2240] to-[#0F7654]">
-        <span className={cn("font-bold font-arabic leading-none text-omani-gold", text)}>خ</span>
-      </div>
-      <div className="absolute -top-0.5 -end-0.5 h-2 w-2 rounded-full bg-omani-gold ring-2 ring-white/90" />
-    </div>
-  );
-}
+const SIZE_PX = { sm: 36, md: 44, lg: 56 } as const;
 
 export function Logo({
   className,
@@ -44,13 +26,12 @@ export function Logo({
 }: LogoProps) {
   const { t } = useLocale();
   const isLight = variant === "light";
-
   const nameSize =
     size === "sm" ? "text-sm" : size === "lg" ? "text-xl md:text-2xl" : "text-base";
 
   return (
-    <Link href="/" className={cn("group flex items-center gap-2.5", className)}>
-      <BrandMark size={size} />
+    <Link href="/" className={cn("group flex items-center gap-2.5 min-w-0", className)}>
+      <BrandLogo href={false} size={SIZE_PX[size]} className="rounded-lg" priority={size === "lg"} />
       {showText && (
         <div className="flex flex-col leading-tight min-w-0">
           <span
@@ -75,11 +56,11 @@ export function Logo({
           ) : (
             <span
               className={cn(
-                "text-[10px] font-medium tracking-wide uppercase",
+                "text-[10px] font-medium tracking-[0.22em] uppercase",
                 isLight ? "text-omani-gold/90" : "text-primary/80"
               )}
             >
-              {t("خياطة عمانية ذكية", "Smart Omani Tailoring")}
+              kytk
             </span>
           )}
         </div>

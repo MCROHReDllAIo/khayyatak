@@ -2,6 +2,8 @@
 export const BRAND = {
   nameAr: "خياطك",
   nameEn: "Khayyatak",
+  shortEn: "kytk",
+  logo: "/brand/khayyatak-logo.png",
   taglineAr: "نفصّلها على مقاسك... بذكاء",
   taglineEn: "Tailored to you, intelligently",
   descriptionAr:

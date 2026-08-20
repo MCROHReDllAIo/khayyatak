@@ -9,6 +9,7 @@ import { OnboardingProvider } from "@/components/onboarding/OnboardingProvider";
 import { useMarketplaceData } from "@/hooks/useMarketplace";
 import { useLocale } from "@/lib/context/locale-context";
 import { BRAND } from "@/lib/constants/brand";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { GeometricPattern } from "@/components/ui/GeometricPattern";
 import type { ProductSearchIntent } from "@/lib/ai/product-intent";
 import type { Tailor } from "@/types";
@@ -87,8 +88,11 @@ export function HomeExperience() {
               className="relative max-w-2xl pe-1"
               data-tour="home-split"
             >
+              <div className="mb-5 inline-flex rounded-2xl bg-[#f3efe6] p-2 shadow-[0_12px_40px_-20px_rgba(0,0,0,0.45)]">
+                <BrandLogo href={false} size={80} priority />
+              </div>
               <p className="text-[11px] uppercase tracking-[0.28em] text-omani-gold/90 mb-3">
-                {BRAND.nameEn}
+                {BRAND.shortEn} · {BRAND.nameEn}
               </p>
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-[3.25rem] font-bold tracking-tight font-arabic text-white leading-[1.15] break-words">
                 {BRAND.nameAr}
