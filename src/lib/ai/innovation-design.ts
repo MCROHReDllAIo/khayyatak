@@ -4,15 +4,26 @@
 
 import type { InnovationDesignSpec } from "@/lib/innovation/types";
 import { DEFAULT_INNOVATION_SPEC } from "@/lib/innovation/types";
+import type { GarmentPart } from "@/lib/innovation/garment-parts";
 import { extractFashionIntent } from "@/lib/ai/intent";
 import { callLLM, extractJsonFromLLM, isRealAIProvider } from "@/lib/ai/provider";
 import { callLLMWithVision } from "@/lib/ai/provider";
 
 interface SpecPatch {
-  spec: Partial<InnovationDesignSpec>;
+  spec: InnovationDesignSpec;
   summary_ar: string;
   summary_en: string;
 }
+
+/** When a part is focused, only apply patches that touch that region. */
+const PART_ALLOWED_KEYS: Record<GarmentPart, Array<keyof InnovationDesignSpec>> = {
+  sleeve: ["sleeves", "sleevesKey"],
+  shoulder: ["opening", "openingKey", "fit", "fitKey"],
+  chest: ["opening", "openingKey", "embroidery", "embroideryKey", "color", "colorKey", "colorHex"],
+  waist: ["fit", "fitKey"],
+  hem: ["length", "lengthKey"],
+  embroidery: ["embroidery", "embroideryKey"],
+};
 
 const NL_PATCHES: Array<{ pattern: RegExp; patch: Partial<InnovationDesignSpec>; ar: string; en: string }> = [
   { pattern: /مفتوح|open/i, patch: { opening: "مفتوحة", openingKey: "front_open" }, ar: "قصة مفتوحة", en: "Open front" },
@@ -32,14 +43,36 @@ const NL_PATCHES: Array<{ pattern: RegExp; patch: Partial<InnovationDesignSpec>;
   { pattern: /بيج|beige/i, patch: { color: "بيج", colorKey: "beige", colorHex: "#D4C4A8" }, ar: "لون بيج", en: "Beige color" },
 ];
 
-export function applyMessageToSpec(message: string, current: InnovationDesignSpec): SpecPatch {
+function filterPatchForPart(
+  patch: Partial<InnovationDesignSpec>,
+  focusPart?: GarmentPart | null
+): Partial<InnovationDesignSpec> {
+  if (!focusPart) return patch;
+  const allowed = new Set(PART_ALLOWED_KEYS[focusPart]);
+  const next: Partial<InnovationDesignSpec> = {};
+  for (const key of Object.keys(patch) as Array<keyof InnovationDesignSpec>) {
+    if (allowed.has(key)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (next as any)[key] = patch[key];
+    }
+  }
+  return next;
+}
+
+export function applyMessageToSpec(
+  message: string,
+  current: InnovationDesignSpec,
+  focusPart?: GarmentPart | null
+): SpecPatch {
   const changes: string[] = [];
   const changesEn: string[] = [];
   let spec: InnovationDesignSpec = { ...current };
 
   for (const { pattern, patch, ar, en } of NL_PATCHES) {
     if (pattern.test(message)) {
-      spec = { ...spec, ...patch };
+      const scoped = filterPatchForPart(patch, focusPart);
+      if (Object.keys(scoped).length === 0) continue;
+      spec = { ...spec, ...scoped };
       changes.push(ar);
       changesEn.push(en);
     }
@@ -47,34 +80,51 @@ export function applyMessageToSpec(message: string, current: InnovationDesignSpe
 
   if (changes.length === 0) {
     const intent = extractFashionIntent(message);
-    if (intent.garmentType) spec.category = intent.garmentType;
+    const intentPatch: Partial<InnovationDesignSpec> = {};
+    if (!focusPart && intent.garmentType) intentPatch.category = intent.garmentType;
     if (intent.color) {
-      spec.color = intent.color;
-      spec.colorKey = intent.colorKey ?? spec.colorKey;
+      intentPatch.color = intent.color;
+      intentPatch.colorKey = intent.colorKey ?? current.colorKey;
     }
-    if (intent.fabric) {
-      spec.fabric = intent.fabric;
-      spec.fabricKey = intent.fabricKey ?? spec.fabricKey;
+    if (!focusPart && intent.fabric) {
+      intentPatch.fabric = intent.fabric;
+      intentPatch.fabricKey = intent.fabricKey ?? current.fabricKey;
     }
     if (intent.fit) {
-      spec.fit = intent.fit;
-      spec.fitKey = intent.fitKey ?? spec.fitKey;
+      intentPatch.fit = intent.fit;
+      intentPatch.fitKey = intent.fitKey ?? current.fitKey;
     }
     if (intent.embroidery) {
-      spec.embroidery = intent.embroidery;
-      spec.embroideryKey = intent.embroideryKey ?? spec.embroideryKey;
+      intentPatch.embroidery = intent.embroidery;
+      intentPatch.embroideryKey = intent.embroideryKey ?? current.embroideryKey;
     }
-    if (intent.occasion) spec.occasion = intent.occasion;
-    if (intent.style === "رسمي") spec.occasion = "رسمي";
+    if (!focusPart && intent.occasion) intentPatch.occasion = intent.occasion;
+    if (!focusPart && intent.style === "رسمي") intentPatch.occasion = "رسمي";
 
-    changes.push(intent.summary_ar);
-    changesEn.push(intent.summary_en);
+    const scoped = filterPatchForPart(intentPatch, focusPart);
+    if (Object.keys(scoped).length > 0 || !focusPart) {
+      spec = { ...spec, ...scoped };
+      changes.push(
+        focusPart
+          ? `تعديل ${focusPart}: ${intent.summary_ar}`
+          : intent.summary_ar
+      );
+      changesEn.push(
+        focusPart
+          ? `${focusPart} update: ${intent.summary_en}`
+          : intent.summary_en
+      );
+    } else {
+      changes.push("حدّدي التعديل على الجزء المحدد");
+      changesEn.push("Describe the change for the selected part");
+    }
   }
 
+  const partPrefix = focusPart ? `[${focusPart}] ` : "";
   return {
     spec,
-    summary_ar: changes.length ? changes.join(" + ") : "تحديث التصميم",
-    summary_en: changesEn.length ? changesEn.join(" + ") : "Design update",
+    summary_ar: partPrefix + (changes.length ? changes.join(" + ") : "تحديث التصميم"),
+    summary_en: partPrefix + (changesEn.length ? changesEn.join(" + ") : "Design update"),
   };
 }
 

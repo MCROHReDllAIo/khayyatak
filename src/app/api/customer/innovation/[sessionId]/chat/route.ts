@@ -23,10 +23,18 @@ export async function POST(
 
   const { sessionId } = await params;
   const body = await request.json();
-  const { message, imageDataUrl, history } = body as {
+  const { message, imageDataUrl, history, focusPart } = body as {
     message: string;
     imageDataUrl?: string;
     history?: string[];
+    focusPart?:
+      | "sleeve"
+      | "shoulder"
+      | "chest"
+      | "waist"
+      | "hem"
+      | "embroidery"
+      | null;
   };
 
   if (!message?.trim()) {
@@ -52,8 +60,8 @@ export async function POST(
     summaryEn = "Reference image analysis";
   }
 
-  const patch = applyMessageToSpec(message, spec);
-  spec = patch.spec as InnovationDesignSpec;
+  const patch = applyMessageToSpec(message, spec, focusPart);
+  spec = patch.spec;
 
   if (!imageDataUrl) {
     summaryAr = patch.summary_ar;

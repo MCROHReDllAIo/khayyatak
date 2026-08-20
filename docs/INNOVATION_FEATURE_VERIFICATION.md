@@ -67,7 +67,7 @@
 ## Known Limitations
 
 1. No fake feasibility — customer sees "بانتظار رد المتجر" until tailor acts.
-2. No fake 3D — canvas is structured 2D SVG; labeled honestly.
+2. No fake 3D — canvas is structured interactive 2D SVG with optional part hotspots; labeled honestly as a design preview (not a real 3D garment engine).
 3. No fake inventory — empty stock never shown as available.
 4. Tailor price is the only final price.
 5. Realtime websocket not implemented — refresh requests page for updates.
