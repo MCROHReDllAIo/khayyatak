@@ -28,17 +28,17 @@ Premium interactive walkthrough for first-time visitors to the home split experi
 
 | # | Step id | Target | Notes |
 |---|---------|--------|-------|
-| 1 | `intro` | — | Center welcome card |
-| 2 | `home` | `[data-tour=home-split]` | Split layout |
-| 3 | `stores` | `[data-tour=home-stores]` | Marketplace panel |
-| 4 | `store-card` | `[data-tour=home-store-card]` | First card or empty state |
-| 5 | `ai` | `[data-tour=home-ai]` | AI panel |
-| 6 | `ai-demo` | `[data-tour=home-ai-input]` | Demo search animation (no DB write) |
-| 7 | `media` | `[data-tour=home-ai-controls]` | Voice / photo / innovate — no auto mic |
-| 8 | `innovate` | `[data-tour=home-innovate]` | Design collab demo |
-| 9 | `design` | center | Measurements / virtual / tailor feasibility caveats |
-| 10 | `orders` | center | Order timeline demo — no fake order |
-| 11 | `finish` | center | Summary CTAs |
+| — | welcome | full-screen | `TourWelcome` (before tour) |
+| 1 | `home` | `[data-tour=home-split]` | Split layout |
+| 2 | `stores` | `[data-tour=home-stores]` | Marketplace panel |
+| 3 | `store-card` | `[data-tour=home-store-card]` | First card or empty state |
+| 4 | `ai` | `[data-tour=home-ai]` | AI panel |
+| 5 | `ai-demo` | `[data-tour=home-ai-input]` | Demo search animation (no DB write) |
+| 6 | `media` | `[data-tour=home-ai-controls]` | Voice / photo / innovate — no auto mic |
+| 7 | `innovate` | `[data-tour=home-innovate]` | Design collab demo |
+| 8 | `design` | center | Measurements / virtual / tailor feasibility caveats |
+| 9 | `orders` | center | Order timeline demo — no fake order |
+| 10 | `finish` | center | Summary CTAs |
 
 ## Feature dependencies / honesty
 
