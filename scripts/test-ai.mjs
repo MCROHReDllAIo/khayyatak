@@ -76,7 +76,7 @@ async function testChat(apiKey, model, referer) {
 loadEnv();
 
 const key = process.env.OPENROUTER_API_KEY?.trim();
-const model = process.env.OPENROUTER_MODEL?.trim() || "openai/gpt-4o-mini";
+const model = process.env.OPENROUTER_MODEL?.trim() || "google/gemini-3.7-flash";
 const referer = process.env.NEXT_PUBLIC_APP_URL?.trim() || "https://kytk.online";
 
 console.log("\nKhayyatak — OpenRouter AI test\n");

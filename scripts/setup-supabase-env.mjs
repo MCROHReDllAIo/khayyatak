@@ -127,8 +127,8 @@ async function main() {
     /* preserved via parseEnvFile */
   }
   if (!map.has("NEXT_PUBLIC_APP_URL")) map.set("NEXT_PUBLIC_APP_URL", "https://kytk.online");
-  if (!map.has("OPENROUTER_MODEL")) map.set("OPENROUTER_MODEL", "openai/gpt-4o-mini");
-  if (!map.has("OPENROUTER_VISION_MODEL")) map.set("OPENROUTER_VISION_MODEL", "openai/gpt-4o-mini");
+  if (!map.has("OPENROUTER_MODEL")) map.set("OPENROUTER_MODEL", "google/gemini-3.7-flash");
+  if (!map.has("OPENROUTER_VISION_MODEL")) map.set("OPENROUTER_VISION_MODEL", "google/gemini-3.7-flash");
 
   writeFileSync(envPath, serializeEnv(map), "utf8");
 

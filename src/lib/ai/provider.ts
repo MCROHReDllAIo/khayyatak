@@ -22,8 +22,8 @@ export function getAIConfig(): AIConfig {
     return {
       provider: "openrouter",
       apiKey: process.env.OPENROUTER_API_KEY.trim(),
-      model: process.env.OPENROUTER_MODEL?.trim() || "openai/gpt-4o-mini",
-      visionModel: process.env.OPENROUTER_VISION_MODEL?.trim() || "openai/gpt-4o-mini",
+      model: process.env.OPENROUTER_MODEL?.trim() || "google/gemini-3.7-flash",
+      visionModel: process.env.OPENROUTER_VISION_MODEL?.trim() || "google/gemini-3.7-flash",
       baseUrl: "https://openrouter.ai/api/v1/chat/completions",
     };
   }

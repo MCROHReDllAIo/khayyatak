@@ -56,7 +56,7 @@ Copy `.env.example` → `.env.local`:
 ```env
 # OpenRouter (recommended)
 OPENROUTER_API_KEY=
-OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_MODEL=google/gemini-3.7-flash
 
 # Direct providers (optional)
 OPENAI_API_KEY=
