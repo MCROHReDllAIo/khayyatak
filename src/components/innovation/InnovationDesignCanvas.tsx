@@ -70,8 +70,8 @@ export function InnovationDesignCanvas({
 
       {aiVisualizationUrl && (
         <div className="border-t p-4 space-y-2">
-          <p className="text-xs font-medium text-primary">AI Visualization</p>
-          <p className="text-[10px] text-amber-700">تصور بصرية بالذكاء الاصطناعي — ليس ضمان تصنيع</p>
+          <p className="text-xs font-medium text-primary">معاينة مولدة بالذكاء الاصطناعي</p>
+          <p className="text-[10px] text-amber-700">AI Generated — ليس منتج سوق ولا ضمان تصنيع</p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={aiVisualizationUrl} alt="AI visualization" className="w-full rounded-xl object-cover max-h-48" />
         </div>

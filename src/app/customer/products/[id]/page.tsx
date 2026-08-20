@@ -6,6 +6,8 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, Store, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatOMR } from "@/lib/utils";
+import { ProductImageEmpty } from "@/components/shared/ProductImageEmpty";
+import { resolveProductImageUrl } from "@/lib/images/product-image";
 import type { MatchedProduct } from "@/lib/db/products";
 
 export default function ProductDetailPage() {
@@ -47,12 +49,16 @@ export default function ProductDetailPage() {
       </Link>
 
       <div className="grid md:grid-cols-2 gap-8">
-        <div className="rounded-2xl overflow-hidden bg-omani-cream aspect-[4/5]">
-          {product.image_url ? (
+        <div className="rounded-2xl overflow-hidden bg-slate-100 aspect-[4/5]">
+          {resolveProductImageUrl(product.image_url) ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={product.image_url} alt={product.name_ar} className="h-full w-full object-cover" />
+            <img
+              src={resolveProductImageUrl(product.image_url)!}
+              alt={product.name_ar}
+              className="h-full w-full object-cover"
+            />
           ) : (
-            <div className="flex h-full items-center justify-center text-muted-foreground">لا توجد صورة</div>
+            <ProductImageEmpty />
           )}
         </div>
 

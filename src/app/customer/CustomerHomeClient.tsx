@@ -104,7 +104,7 @@ export function CustomerHomeClient({ initial }: { initial: CustomerHomeInitialDa
           <div className="flex items-end justify-between mb-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-2">
-                {t("تصميمك الحالي", "Current design")}
+                {t("تصميمك الحالي (توضيحي)", "Your current design (concept)")}
               </p>
               <h2 className="editorial-title">
                 {design.color} · {design.fabric}

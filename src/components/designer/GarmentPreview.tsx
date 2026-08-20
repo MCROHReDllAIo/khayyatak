@@ -9,6 +9,8 @@ interface GarmentPreviewProps {
   design: DesignConfig;
   className?: string;
   size?: "sm" | "md" | "lg";
+  /** Always a design-system silhouette — never a real product photo */
+  showConceptLabel?: boolean;
 }
 
 function AbayaSvg({
@@ -144,7 +146,12 @@ function DishdashaSvg({
   );
 }
 
-export function GarmentPreview({ design, className, size = "md" }: GarmentPreviewProps) {
+export function GarmentPreview({
+  design,
+  className,
+  size = "md",
+  showConceptLabel = true,
+}: GarmentPreviewProps) {
   const isAbaya = design.garmentType === "abaya";
   const colorHex = DESIGN_COLORS.find((c) => c.key === design.colorKey)?.hex ?? "#FFFFFF";
   const hasEmbroidery = design.embroideryKey !== "none";
@@ -166,7 +173,7 @@ export function GarmentPreview({ design, className, size = "md" }: GarmentPrevie
   const garmentLabel = GARMENT_TYPES.find((g) => g.key === design.garmentType)?.ar ?? design.garmentType;
 
   return (
-    <div className={cn("relative flex items-center justify-center", className)}>
+    <div className={cn("relative flex flex-col items-center justify-center gap-2", className)}>
       <motion.div
         key={`${design.garmentType}-${design.colorKey}-${design.collarKey}-${design.embroideryKey}`}
         initial={{ opacity: 0, scale: 0.95 }}
@@ -176,7 +183,13 @@ export function GarmentPreview({ design, className, size = "md" }: GarmentPrevie
       >
         <div className="absolute bottom-0 inset-x-4 h-4 bg-black/10 rounded-full blur-md" />
 
-        <svg viewBox="0 0 200 320" className="w-full h-full drop-shadow-lg" xmlns="http://www.w3.org/2000/svg">
+        <svg
+          viewBox="0 0 200 320"
+          className="w-full h-full drop-shadow-lg"
+          xmlns="http://www.w3.org/2000/svg"
+          role="img"
+          aria-label="تصميم توضيحي — ليس منتجاً حقيقياً"
+        >
           {isAbaya ? (
             <AbayaSvg design={design} colorHex={colorHex} hasEmbroidery={hasEmbroidery} embroideryColor={embroideryColor} />
           ) : (
@@ -191,6 +204,11 @@ export function GarmentPreview({ design, className, size = "md" }: GarmentPrevie
           {design.fabric}
         </div>
       </motion.div>
+      {showConceptLabel && (
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground/80 font-medium">
+          تصميم توضيحي · ليس منتج سوق
+        </p>
+      )}
     </div>
   );
 }

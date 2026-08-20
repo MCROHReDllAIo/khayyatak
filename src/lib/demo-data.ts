@@ -1,3 +1,10 @@
+/**
+ * @deprecated DEAD / QUARANTINED — DO NOT IMPORT IN PRODUCTION UI.
+ * This file contains FAKE tailors, ratings, prices, and gallery paths.
+ * Marketplace and AI chat must use PostgreSQL only.
+ * Kept only so historical references don't break typecheck if re-imported by mistake —
+ * prefer deleting usages and this file entirely.
+ */
 import type {
   City,
   Tailor,
@@ -10,6 +17,7 @@ import type {
   Measurements,
 } from "@/types";
 
+/** Fake city counts — NOT for production marketplace */
 export const CITIES: City[] = [
   { id: "muscat", name_ar: "مسقط", name_en: "Muscat", tailor_count: 42, lat: 23.588, lng: 58.3829 },
   { id: "salalah", name_ar: "صلالة", name_en: "Salalah", tailor_count: 18, lat: 17.0151, lng: 54.0924 },

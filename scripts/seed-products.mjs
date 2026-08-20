@@ -1,7 +1,11 @@
 #!/usr/bin/env node
 /**
- * Seed real product rows for AI shopping — no UI fakes.
- * Usage: npm run seed:products
+ * DEV-ONLY catalog seed — NEVER invents stock product photos.
+ *
+ * Products are created WITHOUT image_url. Tailors must upload real photos.
+ *
+ * Refuses production Railway URLs unless:
+ *   ALLOW_DEMO_SEED=1 node scripts/seed-products.mjs --force
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -10,6 +14,8 @@ import { fileURLToPath } from "node:url";
 import pg from "pg";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const force = process.argv.includes("--force");
+const allowDemo = process.env.ALLOW_DEMO_SEED === "1";
 
 function loadEnv() {
   const envPath = resolve(root, ".env.local");
@@ -25,11 +31,12 @@ function loadEnv() {
   }
 }
 
+/** Metadata-only seeds — image_url always null (no Unsplash / stock). */
 const PRODUCTS = [
   {
     name_ar: "عباية حمراء مفتوحة",
     name_en: "Open Red Abaya",
-    description_ar: "عباية حمراء مفتوحة من كريب فاخر — قصة مفتوحة أنيقة للمناسبات واليومي.",
+    description_ar: "عباية حمراء مفتوحة — يحتاج الخياط رفع صورة حقيقية قبل النشر للعملاء.",
     category: "abaya",
     tags: ["abaya", "red", "open", "women", "crepe"],
     price: 25.0,
@@ -40,12 +47,11 @@ const PRODUCTS = [
     color_key: "red",
     gender: "women",
     occasion: "يومي",
-    image_url: "https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=800&q=80",
   },
   {
     name_ar: "عباية سوداء واسعة",
     name_en: "Wide Black Abaya",
-    description_ar: "عباية سوداء واسعة من شيفون خفيف — مثالية للصيف والدوام.",
+    description_ar: "عباية سوداء واسعة — يحتاج الخياط رفع صورة حقيقية قبل النشر للعملاء.",
     category: "abaya",
     tags: ["abaya", "black", "wide", "women", "chiffon"],
     price: 22.5,
@@ -56,39 +62,6 @@ const PRODUCTS = [
     color_key: "black",
     gender: "women",
     occasion: "صيف",
-    image_url: "https://images.unsplash.com/photo-1617098907767-40b7e7887522?w=800&q=80",
-  },
-  {
-    name_ar: "عباية بيج رسمية بسيطة",
-    name_en: "Simple Formal Beige Abaya",
-    description_ar: "عباية بيج رسمية بسيطة بدون تطريز — أناقة هادئة للعيد والمناسبات.",
-    category: "abaya",
-    tags: ["abaya", "beige", "formal", "simple", "women"],
-    price: 28.0,
-    fabric: "كريب",
-    style: "رسمية",
-    style_cut: "formal",
-    color: "بيج",
-    color_key: "beige",
-    gender: "women",
-    occasion: "عيد",
-    image_url: "https://images.unsplash.com/photo-1581044777550-4cfa60707c03?w=800&q=80",
-  },
-  {
-    name_ar: "عباية كحلية صيفية",
-    name_en: "Summer Navy Abaya",
-    description_ar: "عباية كحلية خفيفة من كتان — قصة صيفية مريحة.",
-    category: "abaya",
-    tags: ["abaya", "navy", "summer", "women", "linen"],
-    price: 24.0,
-    fabric: "كتان",
-    style: "صيفية",
-    style_cut: "summer",
-    color: "كحلي",
-    color_key: "navy",
-    gender: "women",
-    occasion: "صيف",
-    image_url: "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&q=80",
   },
 ];
 
@@ -96,6 +69,23 @@ loadEnv();
 const url = process.env.DATABASE_URL?.trim();
 if (!url) {
   console.error("Missing DATABASE_URL");
+  process.exit(1);
+}
+
+const looksProd =
+  /railway|rlwy\.net|prod|kytk/i.test(url) || process.env.NODE_ENV === "production";
+
+if (looksProd && !(force && allowDemo)) {
+  console.error(`
+Refusing to seed against what looks like production.
+
+This script must NEVER publish stock/fake product photos.
+If you really need metadata-only demo rows on this DB:
+
+  ALLOW_DEMO_SEED=1 node scripts/seed-products.mjs --force
+
+Better: create a real tailor account and upload real product photos.
+`);
   process.exit(1);
 }
 
@@ -107,25 +97,26 @@ const client = new pg.Client({
 await client.connect();
 
 try {
-  const tailorRes = await client.query(
-    `SELECT id FROM tailors WHERE verified = TRUE OR TRUE ORDER BY rating DESC NULLS LAST LIMIT 1`
+  // Purge any leftover stock-host images first
+  const purged = await client.query(
+    `UPDATE products
+     SET published = FALSE, available = FALSE, image_url = NULL,
+         image_source_type = 'BLOCKED_STOCK', updated_at = NOW()
+     WHERE image_url IS NOT NULL
+       AND (image_url ILIKE '%unsplash%' OR image_url ILIKE '%pexels%' OR image_url ILIKE '%picsum%')
+     RETURNING id`
   );
-  let tailorId = tailorRes.rows[0]?.id;
-
-  if (!tailorId) {
-    const cityRes = await client.query(`SELECT id FROM cities LIMIT 1`);
-    const cityId = cityRes.rows[0]?.id;
-    const insert = await client.query(
-      `INSERT INTO tailors (name_ar, name_en, city_id, rating, starting_price, delivery_days, verified, description_ar, description_en)
-       VALUES ('خياطك للعبايات', 'Khayyatak Abayas', $1, 4.8, 20, 5, TRUE, 'متجر عبايات', 'Abaya store')
-       RETURNING id`,
-      [cityId]
-    );
-    tailorId = insert.rows[0]?.id;
+  if (purged.rowCount) {
+    console.log(`🧹 Unpublished ${purged.rowCount} stock-image product(s).`);
   }
 
+  const tailorRes = await client.query(
+    `SELECT id FROM tailors ORDER BY created_at ASC NULLS LAST LIMIT 1`
+  );
+  const tailorId = tailorRes.rows[0]?.id;
+
   if (!tailorId) {
-    console.error("No tailor found — create a tailor first.");
+    console.error("No tailor found — register a real tailor first. Will not invent one.");
     process.exit(1);
   }
 
@@ -135,12 +126,14 @@ try {
       `SELECT id FROM products WHERE name_ar = $1 AND tailor_id = $2 LIMIT 1`,
       [p.name_ar, tailorId]
     );
+    // published=FALSE until a real photo is uploaded
     if (existing.rows.length) {
       await client.query(
         `UPDATE products SET
           name_en = $2, description_ar = $3, category = $4, tags = $5, price = $6,
           fabric = $7, style = $8, style_cut = $9, color = $10, color_key = $11,
-          gender = $12, occasion = $13, image_url = $14, published = TRUE, available = TRUE
+          gender = $12, occasion = $13, image_url = NULL, image_source_type = 'UNKNOWN',
+          published = FALSE, available = FALSE, updated_at = NOW()
          WHERE id = $1`,
         [
           existing.rows[0].id,
@@ -156,17 +149,16 @@ try {
           p.color_key,
           p.gender,
           p.occasion,
-          p.image_url,
         ]
       );
-      console.log(`↻ Updated: ${p.name_ar}`);
+      console.log(`↻ Updated (unpublished, no image): ${p.name_ar}`);
     } else {
       await client.query(
         `INSERT INTO products (
           tailor_id, name_ar, name_en, description_ar, category, tags, price,
           fabric, style, style_cut, color, color_key, gender, occasion, image_url,
-          published, available
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,TRUE,TRUE)`,
+          image_source_type, published, available
+        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,NULL,'UNKNOWN',FALSE,FALSE)`,
         [
           tailorId,
           p.name_ar,
@@ -182,15 +174,17 @@ try {
           p.color_key,
           p.gender,
           p.occasion,
-          p.image_url,
         ]
       );
       inserted++;
-      console.log(`✓ Inserted: ${p.name_ar}`);
+      console.log(`✓ Inserted (unpublished, no image): ${p.name_ar}`);
     }
   }
 
-  console.log(`\nDone. ${inserted} new products seeded for tailor ${tailorId}.`);
+  console.log(`
+Done. ${inserted} metadata-only product(s) for tailor ${tailorId}.
+They are NOT published — upload real photos and set published=TRUE before customers see them.
+`);
 } finally {
   await client.end();
 }

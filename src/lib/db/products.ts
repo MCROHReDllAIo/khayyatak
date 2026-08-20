@@ -4,6 +4,7 @@
 
 import { pgQuery, isPostgresConfigured } from "@/lib/db/postgres";
 import type { ProductSearchIntent } from "@/lib/ai/product-intent";
+import { resolveProductImageUrl } from "@/lib/images/product-image";
 
 export interface MatchedProduct {
   id: string;
@@ -26,6 +27,33 @@ export interface MatchedProduct {
   tailor_rating: number;
   match_score: number;
   match_reasons: string[];
+  image_source_type?: string | null;
+}
+
+function mapProductRow(row: Record<string, unknown>, score: number, reasons: string[]): MatchedProduct {
+  return {
+    id: row.id as string,
+    tailor_id: row.tailor_id as string,
+    name_ar: row.name_ar as string,
+    name_en: (row.name_en as string) ?? null,
+    description_ar: (row.description_ar as string) ?? null,
+    category: (row.category as string) ?? null,
+    tags: (row.tags as string[]) ?? [],
+    price: Number(row.price ?? 0),
+    fabric: (row.fabric as string) ?? null,
+    style: (row.style as string) ?? null,
+    style_cut: (row.style_cut as string) ?? null,
+    color: (row.color as string) ?? null,
+    color_key: (row.color_key as string) ?? null,
+    occasion: (row.occasion as string) ?? null,
+    image_url: resolveProductImageUrl((row.image_url as string) ?? null),
+    available: row.available !== false,
+    tailor_name_ar: (row.tailor_name_ar as string) ?? null,
+    tailor_rating: Number(row.tailor_rating ?? 0),
+    match_score: score,
+    match_reasons: reasons,
+    image_source_type: (row.image_source_type as string) ?? null,
+  };
 }
 
 function scoreProduct(row: Record<string, unknown>, intent: ProductSearchIntent): { score: number; reasons: string[] } {
@@ -115,56 +143,22 @@ export async function searchProducts(intent: ProductSearchIntent, limit = 3): Pr
   const scored = rows
     .map((row) => {
       const { score, reasons } = scoreProduct(row, intent);
-      return {
-        id: row.id as string,
-        tailor_id: row.tailor_id as string,
-        name_ar: row.name_ar as string,
-        name_en: (row.name_en as string) ?? null,
-        description_ar: (row.description_ar as string) ?? null,
-        category: (row.category as string) ?? null,
-        tags: (row.tags as string[]) ?? [],
-        price: Number(row.price ?? 0),
-        fabric: (row.fabric as string) ?? null,
-        style: (row.style as string) ?? null,
-        style_cut: (row.style_cut as string) ?? null,
-        color: (row.color as string) ?? null,
-        color_key: (row.color_key as string) ?? null,
-        occasion: (row.occasion as string) ?? null,
-        image_url: (row.image_url as string) ?? null,
-        available: row.available !== false,
-        tailor_name_ar: (row.tailor_name_ar as string) ?? null,
-        tailor_rating: Number(row.tailor_rating ?? 0),
-        match_score: score,
-        match_reasons: reasons,
-      };
+      return mapProductRow(row, score, reasons);
     })
-    .filter((p) => p.match_score > 0)
+    .filter((p) => {
+      // Require a meaningful match — never invent "recommended" products with 0 relevance
+      const hasIntentSignal =
+        Boolean(intent.category) ||
+        Boolean(intent.colorKey) ||
+        Boolean(intent.styleCut) ||
+        Boolean(intent.fabric) ||
+        Boolean(intent.occasion);
+      if (!hasIntentSignal) return p.match_score >= 5;
+      return p.match_score >= 25;
+    })
     .sort((a, b) => b.match_score - a.match_score);
 
-  const results = scored.length > 0 ? scored : rows.map((row) => ({
-    id: row.id as string,
-    tailor_id: row.tailor_id as string,
-    name_ar: row.name_ar as string,
-    name_en: (row.name_en as string) ?? null,
-    description_ar: (row.description_ar as string) ?? null,
-    category: (row.category as string) ?? null,
-    tags: (row.tags as string[]) ?? [],
-    price: Number(row.price ?? 0),
-    fabric: (row.fabric as string) ?? null,
-    style: (row.style as string) ?? null,
-    style_cut: (row.style_cut as string) ?? null,
-    color: (row.color as string) ?? null,
-    color_key: (row.color_key as string) ?? null,
-    occasion: (row.occasion as string) ?? null,
-    image_url: (row.image_url as string) ?? null,
-    available: row.available !== false,
-    tailor_name_ar: (row.tailor_name_ar as string) ?? null,
-    tailor_rating: Number(row.tailor_rating ?? 0),
-    match_score: Math.max(15, scoreProduct(row, intent).score),
-    match_reasons: scoreProduct(row, intent).reasons,
-  })).sort((a, b) => b.match_score - a.match_score);
-
-  return results.slice(0, limit);
+  return scored.slice(0, limit);
 }
 
 export async function getProductById(id: string): Promise<MatchedProduct | null> {
@@ -182,28 +176,7 @@ export async function getProductById(id: string): Promise<MatchedProduct | null>
   const row = rows[0];
   if (!row) return null;
 
-  return {
-    id: row.id as string,
-    tailor_id: row.tailor_id as string,
-    name_ar: row.name_ar as string,
-    name_en: (row.name_en as string) ?? null,
-    description_ar: (row.description_ar as string) ?? null,
-    category: (row.category as string) ?? null,
-    tags: (row.tags as string[]) ?? [],
-    price: Number(row.price ?? 0),
-    fabric: (row.fabric as string) ?? null,
-    style: (row.style as string) ?? null,
-    style_cut: (row.style_cut as string) ?? null,
-    color: (row.color as string) ?? null,
-    color_key: (row.color_key as string) ?? null,
-    occasion: (row.occasion as string) ?? null,
-    image_url: (row.image_url as string) ?? null,
-    available: row.available !== false,
-    tailor_name_ar: (row.tailor_name_ar as string) ?? null,
-    tailor_rating: Number(row.tailor_rating ?? 0),
-    match_score: 100,
-    match_reasons: [],
-  };
+  return mapProductRow(row, 100, []);
 }
 
 export async function saveProductSearchSession(

@@ -4,7 +4,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { Sparkles, Store, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ProductImageEmpty } from "@/components/shared/ProductImageEmpty";
 import { formatOMR } from "@/lib/utils";
+import { resolveProductImageUrl } from "@/lib/images/product-image";
 import type { MatchedProduct } from "@/lib/db/products";
 
 interface ChatProductCardProps {
@@ -22,28 +24,29 @@ export function ChatProductCard({
   onSize,
   compact,
 }: ChatProductCardProps) {
+  const imageUrl = resolveProductImageUrl(product.image_url);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="w-full max-w-sm rounded-2xl border border-primary/15 bg-white shadow-card overflow-hidden"
     >
-      <div className="relative aspect-[4/5] bg-omani-cream">
-        {product.image_url ? (
+      <div className="relative aspect-[4/5] bg-slate-100">
+        {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.image_url}
+            src={imageUrl}
             alt={product.name_ar}
             className="h-full w-full object-cover"
+            loading="lazy"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-muted-foreground text-sm">
-            لا توجد صورة
-          </div>
+          <ProductImageEmpty />
         )}
         <div className="absolute top-3 start-3 flex items-center gap-1 rounded-full bg-navy/90 px-2.5 py-1 text-[10px] font-semibold text-white">
           <Sparkles className="h-3 w-3 text-primary" />
-          AI Match {product.match_score}%
+          منتج حقيقي · {product.match_score}%
         </div>
       </div>
 
@@ -91,7 +94,7 @@ export function ChatProductCard({
               اختيار المقاس
             </Button>
           )}
-          {onVirtualLook && (
+          {onVirtualLook && imageUrl && (
             <Button size="sm" variant="outline" className="text-xs h-8" onClick={() => onVirtualLook(product)}>
               نظرة افتراضية
             </Button>

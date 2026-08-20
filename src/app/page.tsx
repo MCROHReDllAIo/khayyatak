@@ -140,13 +140,11 @@ export default function HomePage() {
             <ConciergeInput variant="hero" requireAuth />
           </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mt-12 flex justify-center"
-          >
-            <div className="relative p-6 md:p-8">
+          <div className="mt-12 flex justify-center">
+            <div className="relative p-6 md:p-8 rounded-2xl border border-white/10 bg-white/5">
+              <p className="text-center text-xs text-white/45 mb-3 tracking-wide">
+                {t("معاينة تصميم — ليست منتجات السوق", "Design preview — not marketplace products")}
+              </p>
               <GarmentPreview design={previewDesign} size="lg" />
               <div className="flex flex-wrap gap-2 justify-center mt-4">
                 {GARMENT_TYPES.map((g) => (
@@ -173,7 +171,7 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           <div className="flex flex-wrap justify-center gap-2 mt-8">
             {AI_LABELS.map((label, i) => (

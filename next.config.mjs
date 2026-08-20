@@ -2,8 +2,10 @@
 const nextConfig = {
   images: {
     remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
+      // Product/portfolio images from Supabase Storage only — no stock hosts
       { protocol: "https", hostname: "*.supabase.co" },
+      { protocol: "https", hostname: "replicate.delivery" },
+      { protocol: "https", hostname: "*.replicate.delivery" },
     ],
   },
   async headers() {
