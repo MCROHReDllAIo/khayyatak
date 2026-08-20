@@ -84,7 +84,6 @@ export function HomeExperience() {
           <HomeHeader onOpenAi={() => setAiOpen(true)} />
 
           <div className="mx-auto w-full max-w-7xl px-3 sm:px-5 md:px-8 lg:px-10 pb-[7.5rem] sm:pb-28 md:pb-24">
-            {/* Compact brand hero — logo is the hero signal */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -92,20 +91,14 @@ export function HomeExperience() {
               className="relative flex flex-col items-start gap-4 pt-7 pb-6 sm:pt-9 sm:pb-8 md:flex-row md:items-center md:gap-6"
               data-tour="home-split"
             >
-              <div className="relative shrink-0">
-                <div
-                  aria-hidden
-                  className="absolute -inset-3 rounded-[1.35rem] bg-white/[0.06] blur-xl"
-                />
-                <div className="relative rounded-[1.15rem] border border-white/15 bg-white/[0.08] p-2.5 shadow-[0_20px_50px_-28px_rgba(0,0,0,0.55)] backdrop-blur-md">
-                  <BrandLogo href={false} size={80} priority />
-                </div>
+              <div className="shrink-0 rounded-2xl bg-[#f3efe6] p-2.5 shadow-[0_16px_40px_-20px_rgba(0,0,0,0.5)]">
+                <BrandLogo href={false} size={80} priority />
               </div>
               <div className="min-w-0 max-w-xl">
-                <p className="text-base sm:text-lg md:text-xl text-white/70 leading-relaxed">
+                <p className="text-base sm:text-lg md:text-xl text-[#e8e2d6] leading-relaxed">
                   {t("أنت تتخيّل. نحن نساعدك على تفصيله.", "You imagine it. We help tailor it.")}
                 </p>
-                <p className="mt-2 text-sm text-white/40 leading-relaxed max-w-md">
+                <p className="mt-2 text-sm text-[#9aa6b5] leading-relaxed max-w-md">
                   {t(
                     "تصفّح المتاجر الحقيقية، واستعن بمستشارك الذكي متى احتجت.",
                     "Browse real stores, and open your AI concierge whenever you need it."
@@ -114,17 +107,13 @@ export function HomeExperience() {
               </div>
             </motion.div>
 
-            {/* Full-bleed soft glass store surface — not an isolated cream box */}
+            {/* Solid cream surface — opaque, brand-aligned */}
             <motion.div
               initial={{ opacity: 0, y: 14 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.05, ease: [0.22, 1, 0.36, 1] }}
-              className="relative min-h-[62vh] sm:min-h-[70vh] overflow-hidden rounded-[1.5rem] sm:rounded-[1.85rem] border border-white/12 bg-[#f7f4ee]/88 text-navy shadow-[0_24px_80px_-40px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+              className="relative min-h-[62vh] sm:min-h-[70vh] overflow-hidden rounded-[1.5rem] sm:rounded-[1.85rem] border border-[#e4ddd0] bg-[#f7f4ee] text-navy shadow-[0_28px_70px_-36px_rgba(0,0,0,0.55)]"
             >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(200,164,93,0.07),transparent_45%)]"
-              />
               <div className="relative p-4 sm:p-6 md:p-8 lg:p-9">
                 <HomeMarketplacePanel
                   tailors={tailors}

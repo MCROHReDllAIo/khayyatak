@@ -52,7 +52,7 @@ export function HomeMarketplacePanel({
         </div>
 
         {(resultsLabel || hasIntentResults) && (
-          <div className="rounded-2xl border border-primary/15 bg-primary/[0.06] px-3.5 py-2.5 text-xs font-medium text-primary backdrop-blur-sm">
+          <div className="rounded-2xl border border-primary/20 bg-[#e8f5ef] px-3.5 py-2.5 text-xs font-medium text-primary">
             {resultsLabel ?? t("أفضل الخيارات لطلبك", "Best matches for your request")}
           </div>
         )}
@@ -63,7 +63,7 @@ export function HomeMarketplacePanel({
             value={filter.query}
             onChange={(e) => onFilterChange({ query: e.target.value })}
             placeholder={t("ابحث: خياط، دشداشة، صلالة...", "Search: tailor, dishdasha, Salalah...")}
-            className="h-12 w-full rounded-2xl border border-navy/8 bg-white/70 ps-11 pe-4 text-sm outline-none shadow-[0_1px_0_rgba(255,255,255,0.6)_inset] backdrop-blur-md focus:border-navy/20 focus:ring-2 focus:ring-navy/8 transition-[box-shadow,border-color]"
+            className="h-12 w-full rounded-2xl border border-[#ddd5c8] bg-white ps-11 pe-4 text-sm outline-none shadow-sm focus:border-navy/25 focus:ring-2 focus:ring-navy/10 transition-[box-shadow,border-color]"
           />
         </div>
 
@@ -77,7 +77,7 @@ export function HomeMarketplacePanel({
                 "shrink-0 rounded-full px-3.5 py-1.5 text-xs font-medium transition-all",
                 filter.category === c.id
                   ? "bg-navy text-white shadow-sm"
-                  : "bg-white/55 border border-navy/8 text-navy/65 hover:border-navy/20 hover:bg-white/80 backdrop-blur-sm"
+                  : "bg-white border border-[#ddd5c8] text-navy/70 hover:border-navy/25 hover:bg-[#faf8f4]"
               )}
             >
               {locale === "ar" ? c.ar : c.en}
@@ -124,7 +124,7 @@ export function HomeMarketplacePanel({
         ) : ranked.length === 0 ? (
           <div
             data-tour="home-store-card"
-            className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-navy/15 bg-white/45 px-6 text-center backdrop-blur-sm"
+            className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-[#ddd5c8] bg-white px-6 text-center"
           >
             <p className="text-base font-semibold text-navy">
               {t("ستظهر المتاجر هنا عند انضمامها إلى خياطك.", "Stores will appear here as they join Khayyatak.")}

@@ -43,10 +43,10 @@ export function HomeStoreCard({
       transition={{ type: "spring", stiffness: 380, damping: 28 }}
       className={cn(
         "group overflow-hidden rounded-[1.35rem] border transition-shadow duration-300",
-        "bg-white/55 backdrop-blur-md shadow-[0_10px_36px_-24px_rgba(7,26,51,0.45)]",
+        "bg-white shadow-[0_10px_32px_-22px_rgba(7,26,51,0.4)]",
         highlighted || selected
-          ? "border-primary/35 ring-1 ring-primary/15 shadow-[0_16px_40px_-20px_rgba(15,118,84,0.35)]"
-          : "border-white/60 hover:border-navy/10 hover:shadow-[0_18px_44px_-22px_rgba(7,26,51,0.4)]"
+          ? "border-primary/40 ring-1 ring-primary/15 shadow-[0_16px_40px_-20px_rgba(15,118,84,0.3)]"
+          : "border-[#e4ddd0] hover:border-navy/15 hover:shadow-[0_18px_44px_-22px_rgba(7,26,51,0.35)]"
       )}
     >
       <button type="button" className="w-full text-start" onClick={() => onSelect?.(tailor)}>
