@@ -1,0 +1,13 @@
+# Railway / Nixpacks — Node 22 + devDependencies for Next.js build
+[variables]
+NIXPACKS_NODE_VERSION = "22"
+NIXPACKS_INSTALL_DEV_DEPS = "true"
+
+[phases.install]
+cmds = ["npm ci --include=dev"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
