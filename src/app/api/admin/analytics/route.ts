@@ -19,12 +19,27 @@ import {
   getNationalAIPanel,
   type DateRange,
 } from "@/lib/db/analytics";
+import {
+  buildReadinessInsights,
+  enrichCoverageWithShowcase,
+} from "@/lib/admin/enrich-coverage";
+import { isPostgresConfigured, pgQuery } from "@/lib/db/postgres";
 
 async function safe<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn();
   } catch {
     return fallback;
+  }
+}
+
+async function countTable(sql: string): Promise<number> {
+  if (!isPostgresConfigured()) return 0;
+  try {
+    const { rows } = await pgQuery<{ n: number }>(sql);
+    return Number(rows[0]?.n ?? 0);
+  } catch {
+    return 0;
   }
 }
 
@@ -35,8 +50,8 @@ export async function GET(request: Request) {
 
   const [
     kpis,
-    insights,
-    coverage,
+    baseInsights,
+    rawCoverage,
     operations,
     alerts,
     topTailors,
@@ -51,6 +66,8 @@ export async function GET(request: Request) {
     health,
     liveStatus,
     national,
+    innovationSessions,
+    products,
   ] = await Promise.all([
     safe(() => getPlatformKPIs(range), []),
     safe(() => getExecutiveInsights(), []),
@@ -137,14 +154,136 @@ export async function GET(request: Request) {
       repeatRate: 0,
       hasData: false,
     }),
+    countTable(`SELECT COUNT(*)::int AS n FROM innovation_sessions`),
+    countTable(`SELECT COUNT(*)::int AS n FROM products`),
   ]);
 
+  const liveTailorTotal = rawCoverage.reduce((s, c) => s + (c.tailors ?? 0), 0);
+  const { cities: coverage, showcaseNetwork } = enrichCoverageWithShowcase(
+    rawCoverage,
+    liveTailorTotal
+  );
+
+  const kpiNum = (id: string) => {
+    const row = kpis.find((k) => k.id === id);
+    if (!row) return 0;
+    const n = parseInt(String(row.value).replace(/[^\d]/g, ""), 10);
+    return Number.isFinite(n) ? n : 0;
+  };
+
+  const readiness = buildReadinessInsights({
+    customers: kpiNum("customers") || customers.total,
+    tailors: kpiNum("tailors") || liveTailorTotal,
+    orders: kpiNum("orders"),
+    aiCalls: ai.requests || kpiNum("ai"),
+    innovationSessions,
+    products,
+    healthOk: health.overall === "operational",
+    showcaseNetwork,
+  });
+
+  const insightIds = new Set(baseInsights.map((i) => i.id));
+  const insights = [
+    ...baseInsights.filter((i) => i.id !== "empty"),
+    ...readiness.filter((i) => !insightIds.has(i.id)),
+  ].slice(0, 6);
+
+  const enrichedKpis = [
+    ...kpis,
+    {
+      id: "innovation",
+      label_ar: "جلسات ابتكار",
+      label_en: "Innovate sessions",
+      value: String(innovationSessions),
+      trend: 0,
+      trendLabel_ar: "من قاعدة البيانات",
+      trendLabel_en: "from database",
+      href: "/admin/designs",
+      accent: "gold" as const,
+    },
+    {
+      id: "products",
+      label_ar: "منتجات الكتالوج",
+      label_en: "Catalog products",
+      value: String(products),
+      trend: 0,
+      trendLabel_ar: "منتجات حقيقية",
+      trendLabel_en: "real products",
+      href: "/admin/products",
+      accent: "cream" as const,
+    },
+    {
+      id: "network",
+      label_ar: showcaseNetwork ? "شبكة العرض" : "تغطية المدن",
+      label_en: showcaseNetwork ? "Showcase network" : "City coverage",
+      value: String(coverage.filter((c) => c.tailors > 0).length),
+      trend: 0,
+      trendLabel_ar: showcaseNetwork ? "مدن في العرض التجريبي" : "مدن نشطة",
+      trendLabel_en: showcaseNetwork ? "showcase cities" : "active cities",
+      href: "/admin/national-intelligence",
+      accent: "green" as const,
+    },
+  ];
+
+  const enrichedActivity =
+    activity.length > 0
+      ? activity
+      : [
+          {
+            id: "act-health",
+            message_ar: `صحة النظام: ${health.overall === "operational" ? "تشغيل" : "يحتاج انتباه"}`,
+            message_en: `System health: ${health.overall}`,
+            time_ar: "الآن",
+          },
+          {
+            id: "act-net",
+            message_ar: showcaseNetwork
+              ? "شبكة العرض التجريبي مفعّلة على الصفحة الرئيسية"
+              : `${liveTailorTotal} خياط في الشبكة الحية`,
+            message_en: showcaseNetwork
+              ? "Showcase network active on home"
+              : `${liveTailorTotal} live tailors on network`,
+            time_ar: "الآن",
+          },
+          {
+            id: "act-innov",
+            message_ar: `${innovationSessions} جلسة ابتكار مسجّلة`,
+            message_en: `${innovationSessions} innovate sessions logged`,
+            time_ar: "اليوم",
+          },
+        ];
+
+  const enrichedAlerts =
+    alerts.length > 0
+      ? alerts
+      : [
+          {
+            id: "ok-platform",
+            priority: "low" as const,
+            icon: "✅",
+            message_ar: "لا تنبيهات حرجة — المنصة جاهزة للمتابعة اليومية.",
+            message_en: "No critical alerts — platform ready for daily ops.",
+            time_ar: "الآن",
+            href: "/admin/settings",
+          },
+          {
+            id: "next-tailors",
+            priority: "medium" as const,
+            icon: "🪡",
+            message_ar: "الخطوة التالية: توثيق خياطين جدد لملء GMV والطلبات الحقيقية.",
+            message_en: "Next: verify new tailors to fill real GMV and orders.",
+            time_ar: "أولوية",
+            href: "/admin/verification",
+          },
+        ];
+
   return NextResponse.json({
-    kpis,
+    kpis: enrichedKpis,
     insights,
     coverage,
+    showcaseNetwork,
     operations,
-    alerts,
+    alerts: enrichedAlerts,
     topTailors,
     customers,
     trends,
@@ -153,9 +292,15 @@ export async function GET(request: Request) {
     inventory,
     marketplace,
     funnel,
-    activity,
+    activity: enrichedActivity,
     health,
     liveStatus,
     national,
+    modules: {
+      innovationSessions,
+      products,
+      showcaseNetwork,
+      liveTailors: liveTailorTotal,
+    },
   });
 }

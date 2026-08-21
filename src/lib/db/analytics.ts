@@ -341,14 +341,24 @@ export async function getNationalCoverage(cityFilter?: string) {
           const ids = new Set(cityTailors.map((t) => t.id));
           const cityOrders = orders.filter((o) => o.tailor_id && ids.has(o.tailor_id));
           const gmv = cityOrders.reduce((s, o) => s + Number(o.total_price ?? 0), 0);
+          const id = city.id as string;
+          const name_en = city.name_en as string;
+          const MAP_POS: Record<string, { x: number; y: number }> = {
+            muscat: { x: 72, y: 36 },
+            salalah: { x: 38, y: 78 },
+            sohar: { x: 52, y: 18 },
+            nizwa: { x: 55, y: 50 },
+            sur: { x: 84, y: 52 },
+          };
+          const pos = MAP_POS[id] ?? { x: 55, y: 45 };
           return {
-            id: city.id as string,
+            id,
             name_ar: city.name_ar as string,
-            name_en: city.name_en as string,
+            name_en,
             lat: Number(city.lat ?? 0),
             lng: Number(city.lng ?? 0),
-            mapX: 50,
-            mapY: 50,
+            mapX: pos.x,
+            mapY: pos.y,
             tailors: cityTailors.length,
             orders: cityOrders.length,
             customers: new Set(cityOrders.map((o) => o.customer_id)).size,
@@ -358,7 +368,7 @@ export async function getNationalCoverage(cityFilter?: string) {
             topColor: "—",
             topFabric: "—",
             aiInsight_ar: `${city.name_ar as string}: ${cityOrders.length} طلب.`,
-            aiInsight_en: `${city.name_en as string}: ${cityOrders.length} orders.`,
+            aiInsight_en: `${name_en}: ${cityOrders.length} orders.`,
           };
         });
     } catch {

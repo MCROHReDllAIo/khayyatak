@@ -12,6 +12,7 @@ export interface KPIItem {
   trendLabel_ar: string;
   trendLabel_en: string;
   href?: string;
+  accent?: "navy" | "green" | "gold" | "cream";
 }
 
 export interface ExecutiveInsight {
@@ -43,6 +44,9 @@ export interface CityCoverage {
   mapY: number;
   aiInsight_ar: string;
   aiInsight_en: string;
+  /** Showcase overlay count for this city (appearance) */
+  showcaseTailors?: number;
+  isShowcaseNetwork?: boolean;
 }
 
 export interface CriticalAlert {
