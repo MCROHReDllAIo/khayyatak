@@ -11,11 +11,40 @@ interface TourWelcomeProps {
   open: boolean;
   onStart: () => void;
   onExplore: () => void;
+  eyebrowAr?: string;
+  eyebrowEn?: string;
+  titleAr?: string;
+  titleEn?: string;
+  bodyAr?: string;
+  bodyEn?: string;
 }
 
-export function TourWelcome({ open, onStart, onExplore }: TourWelcomeProps) {
+export function TourWelcome({
+  open,
+  onStart,
+  onExplore,
+  eyebrowAr,
+  eyebrowEn,
+  titleAr,
+  titleEn,
+  bodyAr,
+  bodyEn,
+}: TourWelcomeProps) {
   const { t } = useLocale();
   const reduced = Boolean(useReducedMotion());
+
+  const eyebrow = t(
+    eyebrowAr ?? "دع خياطك يريك كيف يعمل",
+    eyebrowEn ?? "Let Khayyatak show you around"
+  );
+  const title = titleAr
+    ? t(titleAr, titleEn ?? titleAr)
+    : `${t("أهلًا بك في", "Welcome to")} ${BRAND.nameAr}`;
+  const body = t(
+    bodyAr ?? "اكتشف طريقة جديدة لتصميم وتفصيل ملابسك — مع متاجر حقيقية وذكاء يفهمك.",
+    bodyEn ??
+      "Discover a new way to design and tailor your clothes — with real stores and AI that gets you."
+  );
 
   return (
     <AnimatePresence>
@@ -74,7 +103,7 @@ export function TourWelcome({ open, onStart, onExplore }: TourWelcomeProps) {
                 transition={{ delay: 0.08 }}
                 className="text-[11px] uppercase tracking-[0.28em] text-omani-gold mb-3"
               >
-                {t("دع خياطك يريك كيف يعمل", "Let Khayyatak show you around")}
+                {eyebrow}
               </motion.p>
               <motion.h1
                 initial={reduced ? false : { opacity: 0, y: 12 }}
@@ -82,7 +111,7 @@ export function TourWelcome({ open, onStart, onExplore }: TourWelcomeProps) {
                 transition={{ delay: 0.14, duration: 0.4 }}
                 className="text-4xl md:text-5xl font-bold text-white font-arabic tracking-tight"
               >
-                {t("أهلًا بك في", "Welcome to")} {BRAND.nameAr}
+                {title}
               </motion.h1>
               <motion.p
                 initial={reduced ? false : { opacity: 0, y: 10 }}
@@ -90,10 +119,7 @@ export function TourWelcome({ open, onStart, onExplore }: TourWelcomeProps) {
                 transition={{ delay: 0.22 }}
                 className="mt-4 text-white/60 text-base leading-relaxed"
               >
-                {t(
-                  "اكتشف طريقة جديدة لتصميم وتفصيل ملابسك — مع متاجر حقيقية وذكاء يفهمك.",
-                  "Discover a new way to design and tailor your clothes — with real stores and AI that gets you."
-                )}
+                {body}
               </motion.p>
             </div>
             <motion.div

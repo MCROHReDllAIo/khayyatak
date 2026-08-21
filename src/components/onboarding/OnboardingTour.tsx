@@ -172,7 +172,12 @@ export function OnboardingTour({
         setRect(null);
         return;
       }
-      const el = document.querySelector(step.target) as HTMLElement | null;
+      const nodes = Array.from(document.querySelectorAll(step.target)) as HTMLElement[];
+      const el =
+        nodes.find((n) => {
+          const r = n.getBoundingClientRect();
+          return r.width > 2 && r.height > 2;
+        }) ?? nodes[0] ?? null;
       if (!el) {
         setRect(null);
         return;

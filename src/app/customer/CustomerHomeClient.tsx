@@ -50,7 +50,10 @@ export function CustomerHomeClient({ initial }: { initial: CustomerHomeInitialDa
 
   return (
     <div className="relative -mx-4 md:-mx-0">
-      <section className="relative overflow-hidden bg-navy text-white px-4 py-10 md:py-14 md:rounded-3xl md:mx-0">
+      <section
+        className="relative overflow-hidden bg-navy text-white px-4 py-10 md:py-14 md:rounded-3xl md:mx-0"
+        data-tour="customer-hero"
+      >
         <GeometricPattern className="text-white opacity-30" />
 
         <div className="relative max-w-6xl mx-auto">
@@ -75,14 +78,14 @@ export function CustomerHomeClient({ initial }: { initial: CustomerHomeInitialDa
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.85fr)_minmax(280px,1fr)] gap-6 lg:gap-8 items-start">
-            <div className="min-w-0 order-1">
+            <div className="min-w-0 order-1" data-tour="customer-concierge">
               <ConciergeInput variant="hero" onSubmit={handleConciergeSubmit} />
               <p className="mt-3 text-center lg:text-start text-xs text-white/40 hidden sm:block">
                 {t("AI → تصميم → خياط", "AI → Design → Tailor")}
               </p>
             </div>
 
-            <div className="min-w-0 order-2 lg:sticky lg:top-24">
+            <div className="min-w-0 order-2 lg:sticky lg:top-24" data-tour="customer-tailors">
               <TailorDiscoveryRail
                 design={design}
                 intent={conciergeIntent}
@@ -100,7 +103,7 @@ export function CustomerHomeClient({ initial }: { initial: CustomerHomeInitialDa
       </section>
 
       <div className="max-w-6xl mx-auto px-4 py-12 md:py-16 space-y-16 md:space-y-24">
-        <section>
+        <section data-tour="customer-design">
           <div className="flex items-end justify-between mb-8">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary mb-2">

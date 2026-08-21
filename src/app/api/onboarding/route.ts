@@ -4,13 +4,26 @@ import { getOnboardingState, logOnboardingEvent, upsertOnboardingState } from "@
 import { MAIN_TOUR_ID, MAIN_TOUR_VERSION } from "@/lib/onboarding/types";
 import type { OnboardingEventType } from "@/lib/onboarding/types";
 
-export async function GET() {
+function resolveTour(searchOrBody: { tourId?: string | null; tourVersion?: string | null }) {
+  return {
+    tourId: searchOrBody.tourId?.trim() || MAIN_TOUR_ID,
+    tourVersion: searchOrBody.tourVersion?.trim() || MAIN_TOUR_VERSION,
+  };
+}
+
+export async function GET(request: Request) {
   const user = await getApiUser();
+  const url = new URL(request.url);
+  const { tourId, tourVersion } = resolveTour({
+    tourId: url.searchParams.get("tourId"),
+    tourVersion: url.searchParams.get("tourVersion"),
+  });
+
   if (!user) {
-    return NextResponse.json({ authenticated: false, state: null });
+    return NextResponse.json({ authenticated: false, state: null, tourId, tourVersion });
   }
-  const state = await getOnboardingState(user.id);
-  return NextResponse.json({ authenticated: true, state });
+  const state = await getOnboardingState(user.id, tourId, tourVersion);
+  return NextResponse.json({ authenticated: true, state, tourId, tourVersion });
 }
 
 export async function POST(request: Request) {
@@ -22,10 +35,21 @@ export async function POST(request: Request) {
     currentStep?: number;
     eventType?: OnboardingEventType;
     stepId?: string;
+    tourId?: string;
+    tourVersion?: string;
   };
 
+  const { tourId, tourVersion } = resolveTour(body);
+
   if (body.action === "event") {
-    await logOnboardingEvent(user?.id ?? null, body.eventType ?? "tour_step_viewed", body.stepId);
+    await logOnboardingEvent(
+      user?.id ?? null,
+      body.eventType ?? "tour_step_viewed",
+      body.stepId,
+      undefined,
+      tourId,
+      tourVersion
+    );
     return NextResponse.json({ ok: true });
   }
 
@@ -34,26 +58,36 @@ export async function POST(request: Request) {
   }
 
   if (body.action === "restart") {
-    const state = await upsertOnboardingState(user.id, {
-      completed: false,
-      skipped: false,
-      currentStep: 0,
-      completedAt: null,
-    });
-    await logOnboardingEvent(user.id, "tour_restarted");
-    return NextResponse.json({ state });
+    const state = await upsertOnboardingState(
+      user.id,
+      {
+        completed: false,
+        skipped: false,
+        currentStep: 0,
+        completedAt: null,
+      },
+      tourId,
+      tourVersion
+    );
+    await logOnboardingEvent(user.id, "tour_restarted", undefined, undefined, tourId, tourVersion);
+    return NextResponse.json({ state, tourId, tourVersion });
   }
 
-  const state = await upsertOnboardingState(user.id, {
-    completed: body.completed,
-    skipped: body.skipped,
-    currentStep: body.currentStep,
-    completedAt: body.completed ? new Date().toISOString() : null,
-  });
+  const state = await upsertOnboardingState(
+    user.id,
+    {
+      completed: body.completed,
+      skipped: body.skipped,
+      currentStep: body.currentStep,
+      completedAt: body.completed ? new Date().toISOString() : null,
+    },
+    tourId,
+    tourVersion
+  );
 
   return NextResponse.json({
     state,
-    tourId: MAIN_TOUR_ID,
-    tourVersion: MAIN_TOUR_VERSION,
+    tourId,
+    tourVersion,
   });
 }

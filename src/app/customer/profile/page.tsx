@@ -52,12 +52,25 @@ export default function ProfilePage() {
               type="button"
               onClick={() => {
                 if (typeof window !== "undefined") {
+                  window.dispatchEvent(new Event("kytk-restart-customer-tour"));
+                  window.location.href = "/customer";
+                }
+              }}
+            >
+              {t("جولة لوحة العميل", "Customer hub walkthrough")}
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined") {
                   window.dispatchEvent(new Event("kytk-restart-tour"));
                   window.location.href = "/";
                 }
               }}
             >
-              {t("جولة تعريفية — ابدأ الجولة", "Intro tour — start walkthrough")}
+              {t("جولة الصفحة الرئيسية", "Home page walkthrough")}
             </Button>
             <Link href="/login"><Button variant="ghost" className="w-full" onClick={logout}>{t("تبديل الحساب", "Switch Account")}</Button></Link>
           </div>

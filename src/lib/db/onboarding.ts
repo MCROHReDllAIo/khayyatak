@@ -96,7 +96,9 @@ export async function logOnboardingEvent(
   userId: string | null,
   eventType: OnboardingEventType,
   stepId?: string,
-  metadata?: Record<string, unknown>
+  metadata?: Record<string, unknown>,
+  tourId = MAIN_TOUR_ID,
+  tourVersion = MAIN_TOUR_VERSION
 ): Promise<void> {
   if (!isPostgresConfigured()) return;
   try {
@@ -105,8 +107,8 @@ export async function logOnboardingEvent(
        VALUES ($1,$2,$3,$4,$5,$6::jsonb)`,
       [
         userId,
-        MAIN_TOUR_ID,
-        MAIN_TOUR_VERSION,
+        tourId,
+        tourVersion,
         eventType,
         stepId ?? null,
         JSON.stringify(metadata ?? {}),

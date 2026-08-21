@@ -1,20 +1,12 @@
 export const MAIN_TOUR_ID = "main";
 export const MAIN_TOUR_VERSION = "2026.1";
 
+export const CUSTOMER_TOUR_ID = "customer";
+export const CUSTOMER_TOUR_VERSION = "2026.1";
+
 export type TourPlacement = "top" | "bottom" | "left" | "right" | "center" | "auto";
 
-export type TourStepId =
-  | "intro"
-  | "home"
-  | "stores"
-  | "store-card"
-  | "ai"
-  | "ai-demo"
-  | "media"
-  | "innovate"
-  | "design"
-  | "orders"
-  | "finish";
+export type TourStepId = string;
 
 export interface TourStep {
   id: TourStepId;
