@@ -92,8 +92,8 @@ export function InnovationDesignCanvas({
             </p>
             <p className="text-xs text-muted-foreground">
               {t(
-                "اختاري نوع القطعة وابدئي الوصف — أو ارفعي صورة مرجعية.",
-                "Choose a garment type and describe your idea — or upload a reference."
+                "صف فكرتك أو أرفق صورة مرجعية — ثم حدد أي جزء تريد تعديله.",
+                "Describe your idea or attach a reference photo — then select any part to edit."
               )}
             </p>
           </div>

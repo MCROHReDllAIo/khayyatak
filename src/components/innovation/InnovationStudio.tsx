@@ -17,7 +17,7 @@ import { InnovationSpecPanel } from "@/components/innovation/InnovationSpecPanel
 import { InnovationChatPanel, type InnovationChatMessage } from "@/components/innovation/InnovationChatPanel";
 import { generateId } from "@/lib/utils";
 import type { InnovationDesignSpec, CustomDesignVersion, MaterialCheckResult } from "@/lib/innovation/types";
-import { DEFAULT_INNOVATION_SPEC } from "@/lib/innovation/types";
+import { defaultSpecForCategory, garmentCategoryLabel } from "@/lib/innovation/types";
 import type { GarmentPart } from "@/lib/innovation/garment-parts";
 import type { Tailor } from "@/types";
 import { useLocale } from "@/lib/context/locale-context";
@@ -27,21 +27,34 @@ interface InnovationStudioProps {
   onBack?: () => void;
   /** Prefill first collaboration message (from home AI innovate) */
   initialIdea?: string | null;
+  /** Chosen on the Innovate landing step */
+  initialCategory?: "abaya" | "dishdasha";
 }
 
 type StudioStage = "waiting" | "evolve" | "measure" | "send";
 
-export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationStudioProps) {
+function welcomeForCategory(category: "abaya" | "dishdasha"): string {
+  if (category === "dishdasha") {
+    return "مرحبًا في ابتكار. هناك مجسم دشداشة ينتظرك لاستكمال مشروعك.\n\nابدأ بتشكيل فكرتك — لون، ياقة، أكمام، تطريز — أو حدد جزءًا من المعاينة لتعديله.\n\nمثال: «أبغى دشداشة بيضاء كلاسيكية، كم عادي، تطريز بسيط على الصدر»";
+  }
+  return "مرحبًا في ابتكار. هناك مجسم عباية ينتظرك لاستكمال مشروعك.\n\nابدأ بتشكيل فكرتك — لون، قصة، أكمام، تطريز — أو حدد جزءًا من المعاينة لتعديله.\n\nمثال: «أبغى عباية سوداء مفتوحة، واسعة، تطريز ذهبي بسيط»";
+}
+
+export function InnovationStudio({
+  sessionId,
+  onBack,
+  initialIdea,
+  initialCategory = "abaya",
+}: InnovationStudioProps) {
   const { t } = useLocale();
-  const [spec, setSpec] = useState<InnovationDesignSpec>(DEFAULT_INNOVATION_SPEC);
+  const [spec, setSpec] = useState<InnovationDesignSpec>(() => defaultSpecForCategory(initialCategory));
   const [versions, setVersions] = useState<CustomDesignVersion[]>([]);
   const [currentVersion, setCurrentVersion] = useState<CustomDesignVersion | null>(null);
   const [messages, setMessages] = useState<InnovationChatMessage[]>([
     {
       id: "welcome",
       role: "assistant",
-      content:
-        "مرحبًا في ابتكار! هناك مجسم ينتظرك.\n\nاختاري عباية أو دشداشة، ثم صفي فكرتك — لون، قصة، أكمام، تطريز — أو اضغطي على جزء من المعاينة لتعديله.\n\nمثال: «أبغى عباية سوداء مفتوحة، واسعة، تطريز ذهبي بسيط»",
+      content: welcomeForCategory(initialCategory),
     },
   ]);
   const [loading, setLoading] = useState(false);
@@ -55,25 +68,34 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
   const [viewAngle, setViewAngle] = useState<"front" | "back" | "side">("front");
   const [showSubmit, setShowSubmit] = useState(false);
   const [focusPart, setFocusPart] = useState<GarmentPart | null>(null);
+  /** Category already chosen on landing — waiting for first design message / image */
   const [hasCollaborated, setHasCollaborated] = useState(false);
   const [measurementsConfirmed, setMeasurementsConfirmed] = useState(false);
   const [measureNote, setMeasureNote] = useState("");
   const [stageHint, setStageHint] = useState<StudioStage>("waiting");
+  const categoryLocked = useRef(true);
 
   const loadSession = useCallback(async () => {
     const res = await fetch(`/api/customer/innovation/${sessionId}`);
     const data = await res.json();
     if (data.currentVersion) {
-      setSpec(data.currentVersion.spec);
+      const loaded = data.currentVersion.spec as InnovationDesignSpec;
+      // Keep landing choice if session still has default mismatch on first open
+      if (categoryLocked.current && initialCategory && loaded.category !== initialCategory) {
+        setSpec({ ...defaultSpecForCategory(initialCategory), ...loaded, category: initialCategory });
+      } else {
+        setSpec(loaded);
+      }
       setCurrentVersion(data.currentVersion);
       setVersions(data.versions ?? []);
       setAiVizUrl(data.currentVersion.ai_visualization_url);
-      if ((data.versions?.length ?? 0) > 0) {
+      if ((data.versions?.length ?? 0) > 1) {
         setHasCollaborated(true);
         setStageHint("evolve");
+        categoryLocked.current = false;
       }
     }
-  }, [sessionId]);
+  }, [sessionId, initialCategory]);
 
   useEffect(() => {
     loadSession();
@@ -137,13 +159,6 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once when studio opens
   }, [initialIdea, sessionId]);
 
-  const pickGarment = (category: "abaya" | "dishdasha") => {
-    setSpec((s) => ({ ...s, category }));
-    setHasCollaborated(true);
-    setStageHint("evolve");
-    void sendMessage(category === "abaya" ? "أريد عباية" : "أريد دشداشة");
-  };
-
   const checkMaterials = async () => {
     setLoading(true);
     const res = await fetch(`/api/customer/innovation/${sessionId}/material-check`, {
@@ -182,7 +197,7 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
         {
           id: generateId(),
           role: "assistant",
-          content: "ابدئي التصميم أولًا — صفّي فكرتك أو اختاري نوع القطعة.",
+          content: "ابدأ التصميم أولًا — صف فكرتك أو أرفق صورة مرجعية.",
         },
       ]);
       return;
@@ -234,6 +249,7 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
   };
 
   const waiting = !hasCollaborated;
+  const categoryLabel = garmentCategoryLabel(spec.category, "ar");
 
   return (
     <div className="space-y-4">
@@ -242,9 +258,12 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
           <div className="flex items-center gap-2">
             <Wand2 className="h-5 w-5 text-primary" />
             <h1 className="text-xl font-bold text-navy">{t("ابتكار", "Innovate")}</h1>
+            <span className="rounded-full bg-navy/5 px-2.5 py-0.5 text-[11px] font-medium text-navy">
+              {t(categoryLabel, garmentCategoryLabel(spec.category, "en"))}
+            </span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {t("استوديو تصميم تفاعلي", "Interactive design studio")}
+            {t("استوديو تصميم تفاعلي — للجميع", "Interactive design studio — for everyone")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -272,17 +291,18 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
       </div>
 
       {waiting && (
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant={spec.category === "abaya" ? "default" : "outline"} onClick={() => pickGarment("abaya")}>
-            {t("عباية", "Abaya")}
-          </Button>
-          <Button
-            size="sm"
-            variant={spec.category === "dishdasha" ? "default" : "outline"}
-            onClick={() => pickGarment("dishdasha")}
+        <div className="rounded-xl border border-navy/10 bg-[#f7f4ee] px-4 py-3 text-sm text-navy/80">
+          {t(
+            "صف لنا ما تتخيله، أو أرفق صورة، أو حدد جزءًا من المجسم لتعديله.",
+            "Describe what you imagine, attach a photo, or select a part of the silhouette to edit."
+          )}
+          <button
+            type="button"
+            className="ms-2 text-xs text-primary underline"
+            onClick={onBack}
           >
-            {t("دشداشة", "Dishdasha")}
-          </Button>
+            {t("تغيير نوع القطعة", "Change garment type")}
+          </button>
         </div>
       )}
 
@@ -339,7 +359,8 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
         >
           <div className="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto shadow-xl">
             <h2 className="font-semibold text-navy flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-primary" /> {t("جاهزة للإرسال؟", "Ready to send?")}
+              <CheckCircle2 className="h-5 w-5 text-primary" />{" "}
+              {t("هل تريد إرسال التصميم إلى الخياط؟", "Send this design to a tailor?")}
             </h2>
             <p className="text-xs text-muted-foreground">
               {t(
@@ -348,10 +369,10 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
               )}
             </p>
 
-            <div className="rounded-xl border border-navy/10 bg-[#f7f4ee]/80 p-3 space-y-2">
+            <div className="rounded-xl border border-navy/10 bg-[#f7f4ee] p-3 space-y-2">
               <p className="text-xs font-semibold text-navy flex items-center gap-1.5">
                 <Ruler className="h-3.5 w-3.5" />
-                {t("المقاسات قبل الإرسال", "Measurements before send")}
+                {t("أضف المقاسات المناسبة للتصميم", "Add measurements for this design")}
               </p>
               <textarea
                 value={measureNote}
@@ -372,8 +393,8 @@ export function InnovationStudio({ sessionId, onBack, initialIdea }: InnovationS
                 />
                 <span>
                   {t(
-                    "أؤكد أن لدي مقاسات كافية أو سأزود الخياط بها لاحقًا.",
-                    "I confirm I have enough measurements or will provide them to the tailor later."
+                    "أؤكد توفر مقاسات كافية أو سأزود الخياط بها لاحقًا.",
+                    "I confirm enough measurements are available, or will provide them to the tailor later."
                   )}
                 </span>
               </label>

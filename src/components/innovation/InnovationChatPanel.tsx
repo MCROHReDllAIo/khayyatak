@@ -37,7 +37,7 @@ export function InnovationChatPanel({ messages, loading, onSend, className }: In
 
   const handleImage = (file: File) => {
     const reader = new FileReader();
-    reader.onload = () => onSend(input.trim() || "حلل هذه الصورة", reader.result as string);
+    reader.onload = () => onSend(input.trim() || "حلّل هذه الصورة المرجعية", reader.result as string);
     reader.readAsDataURL(file);
     setInput("");
   };
@@ -85,7 +85,7 @@ export function InnovationChatPanel({ messages, loading, onSend, className }: In
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="صف تعديلك..."
+          placeholder="صف ما تتخيله أو التعديل المطلوب..."
           disabled={loading}
           className="text-sm h-9"
         />

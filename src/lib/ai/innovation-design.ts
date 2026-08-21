@@ -115,7 +115,7 @@ export function applyMessageToSpec(
           : intent.summary_en
       );
     } else {
-      changes.push("حدّدي التعديل على الجزء المحدد");
+      changes.push("صف التعديل المطلوب على الجزء المحدد");
       changesEn.push("Describe the change for the selected part");
     }
   }
@@ -169,7 +169,7 @@ export async function analyzeInspirationImage(
     }
   }
 
-  const intent = extractFashionIntent(hint ?? "عباية");
+  const intent = extractFashionIntent(hint ?? "تصميم");
   return {
     spec: {
       category: intent.garmentType ?? "abaya",
@@ -187,20 +187,23 @@ export async function generateCollaborationReply(
   spec: InnovationDesignSpec,
   history: string[]
 ): Promise<{ reply: string; usedRealAI: boolean }> {
+  const garment = spec.category === "dishdasha" ? "دشداشة" : "عباية";
   const system = `أنت شريك تصميم أزياء في استوديو "ابتكار" لمنصة خياطك.
-تتعاون مع العميلة لبناء تصميم عباية/دشداشة. رد بالعربية بشكل طبيعي ومختصر.
-اسأل سؤالًا واحدًا فقط إذا لزم. لا تؤكد إمكانية التنفيذ — الخياط يقرر ذلك.
+تتعاون مع المستخدم لبناء تصميم ${garment} (أو قطعة مشابهة). 
+استخدم لغة عربية محايدة راقية موجّهة للجميع — بدون صيغ مؤنثة إلزامية (لا: اختاري/صممي/أضيفي) وبدون صيغ ذكورية مزعجة.
+استخدم صيغًا محايدة مثل: اختر، صف، أضف، حدد، هل تريد، تصميمك جاهز.
+رد بشكل طبيعي ومختصر. اسأل سؤالًا واحدًا فقط إذا لزم. لا تؤكد إمكانية التنفيذ — الخياط يقرر ذلك.
 التصميم الحالي: ${JSON.stringify(spec, null, 0)}`;
 
   const context = history.slice(-6).join("\n");
-  const result = await callLLM(system, `${context}\n\nالعميل: ${message}`);
+  const result = await callLLM(system, `${context}\n\nالمستخدم: ${message}`);
 
   if (result.content && isRealAIProvider(result.provider)) {
     return { reply: result.content, usedRealAI: true };
   }
 
   return {
-    reply: `تمام. حدّثت التصميم: ${spec.color} · ${spec.fabric} · ${spec.opening ?? spec.fit ?? ""}. هل تريدين تعديلًا آخر؟`,
+    reply: `تم تحديث التصميم: ${spec.color} · ${spec.fabric} · ${spec.opening ?? spec.fit ?? ""}. هل تريد تعديلًا آخر؟`,
     usedRealAI: false,
   };
 }

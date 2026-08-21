@@ -10,10 +10,10 @@ interface InnovationSpecPanelProps {
   onSpecChange?: (field: keyof InnovationDesignSpec, value: string) => void;
 }
 
-const FIELDS: Array<{ key: keyof InnovationDesignSpec; label: string }> = [
+const FIELDS: Array<{ key: keyof InnovationDesignSpec; label: string; abayaOnly?: boolean }> = [
   { key: "color", label: "اللون" },
   { key: "fabric", label: "القماش" },
-  { key: "opening", label: "الفتحة" },
+  { key: "opening", label: "الفتحة / الياقة" },
   { key: "fit", label: "القصة" },
   { key: "sleeves", label: "الأكمام" },
   { key: "length", label: "الطول" },
@@ -22,10 +22,13 @@ const FIELDS: Array<{ key: keyof InnovationDesignSpec; label: string }> = [
 ];
 
 export function InnovationSpecPanel({ spec, version, materialResults, onSpecChange }: InnovationSpecPanelProps) {
+  const categoryLabel = spec.category === "dishdasha" ? "دشداشة" : "عباية";
+
   return (
     <div className="rounded-2xl border bg-white shadow-card p-4 space-y-4 h-full overflow-y-auto">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-primary">مواصفات التصميم</p>
+        <p className="text-[11px] text-navy/70 mt-1 font-medium">{categoryLabel}</p>
         {version && (
           <p className="text-[10px] text-muted-foreground mt-0.5">
             النسخة {version.version_number} · {version.change_summary_ar}
@@ -35,11 +38,17 @@ export function InnovationSpecPanel({ spec, version, materialResults, onSpecChan
 
       <div className="space-y-2">
         {FIELDS.map(({ key, label }) => {
+          const fieldLabel =
+            key === "opening"
+              ? spec.category === "dishdasha"
+                ? "الياقة"
+                : "الفتحة"
+              : label;
           const val = spec[key];
           if (!val || typeof val !== "string") return null;
           return (
             <div key={key} className="flex items-center justify-between text-sm border-b border-dashed pb-2">
-              <span className="text-muted-foreground text-xs">{label}</span>
+              <span className="text-muted-foreground text-xs">{fieldLabel}</span>
               {onSpecChange ? (
                 <input
                   className="text-end text-xs font-medium bg-transparent border-none focus:outline-none focus:ring-1 focus:ring-primary rounded px-1 max-w-[120px]"

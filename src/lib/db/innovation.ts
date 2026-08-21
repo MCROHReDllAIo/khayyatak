@@ -9,20 +9,28 @@ import type {
   FeasibilityDecision,
 } from "@/lib/innovation/types";
 import {
-  DEFAULT_INNOVATION_SPEC,
+  defaultSpecForCategory,
   specToDesignConfig,
   buildExecutionSpecification,
 } from "@/lib/innovation/types";
 import type { DesignConfig } from "@/types";
 
-export async function createInnovationSession(customerId: string, title?: string): Promise<InnovationSession | null> {
+export async function createInnovationSession(
+  customerId: string,
+  title?: string,
+  category?: "abaya" | "dishdasha"
+): Promise<InnovationSession | null> {
   if (!isPostgresConfigured()) return null;
+
+  const initialSpec = defaultSpecForCategory(category ?? "abaya");
+  const defaultTitle =
+    category === "dishdasha" ? "تصميم دشداشة" : category === "abaya" ? "تصميم عباية" : "تصميم جديد";
 
   const { rows: sessionRows } = await pgQuery<Record<string, unknown>>(
     `INSERT INTO innovation_sessions (customer_id, title)
      VALUES ($1, $2)
      RETURNING *`,
-    [customerId, title ?? "تصميم جديد"]
+    [customerId, title ?? defaultTitle]
   );
 
   const session = sessionRows[0];
@@ -32,13 +40,13 @@ export async function createInnovationSession(customerId: string, title?: string
     `INSERT INTO custom_designs (session_id, customer_id, title)
      VALUES ($1, $2, $3)
      RETURNING id`,
-    [session.id, customerId, title ?? "تصميم مخصص"]
+    [session.id, customerId, title ?? defaultTitle]
   );
 
   const designId = designRows[0]?.id;
   if (!designId) return null;
 
-  await createDesignVersion(designId, 1, DEFAULT_INNOVATION_SPEC, "النسخة الأولى", "Initial version");
+  await createDesignVersion(designId, 1, initialSpec, "بداية المشروع", "Project start");
 
   return mapSession(session);
 }

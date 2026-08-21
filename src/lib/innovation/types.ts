@@ -127,6 +127,36 @@ export const DEFAULT_INNOVATION_SPEC: InnovationDesignSpec = {
   occasion: "يومي",
 };
 
+export function defaultSpecForCategory(category: "abaya" | "dishdasha"): InnovationDesignSpec {
+  if (category === "dishdasha") {
+    return {
+      category: "dishdasha",
+      color: "أبيض",
+      colorKey: "white",
+      colorHex: "#f5f0e8",
+      fabric: "قطن صيفي",
+      fabricKey: "cotton",
+      opening: "ياقة كلاسيكية",
+      openingKey: "classic",
+      fit: "مريحة",
+      fitKey: "relaxed",
+      sleeves: "عادية",
+      sleevesKey: "regular",
+      length: "كاملة",
+      lengthKey: "full_length",
+      embroidery: "بدون",
+      embroideryKey: "none",
+      occasion: "يومي",
+    };
+  }
+  return { ...DEFAULT_INNOVATION_SPEC, category: "abaya" };
+}
+
+export function garmentCategoryLabel(category: "abaya" | "dishdasha", locale: "ar" | "en" = "ar"): string {
+  if (category === "dishdasha") return locale === "ar" ? "دشداشة" : "Dishdasha";
+  return locale === "ar" ? "عباية" : "Abaya";
+}
+
 export function specToDesignConfig(spec: InnovationDesignSpec): DesignConfig {
   return {
     garmentType: spec.category,

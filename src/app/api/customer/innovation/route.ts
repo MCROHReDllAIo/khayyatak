@@ -9,9 +9,10 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  const { title } = body as { title?: string };
+  const { title, category } = body as { title?: string; category?: "abaya" | "dishdasha" };
+  const safeCategory = category === "dishdasha" || category === "abaya" ? category : undefined;
 
-  const session = await createInnovationSession(auth.id, title);
+  const session = await createInnovationSession(auth.id, title, safeCategory);
   if (!session) {
     return NextResponse.json({ error: "Could not create session" }, { status: 500 });
   }
