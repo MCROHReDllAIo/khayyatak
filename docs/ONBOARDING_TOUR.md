@@ -95,6 +95,15 @@ Stored in `onboarding_events` when DB available.
 | `innovation` | `/customer/innovation` |
 | `measurements` | `/customer/measurements` |
 
+## Tours
+
+| Tour id | Where | Notes |
+|---------|-------|-------|
+| `main` | `/` (home) | Stores-first + floating AI |
+| `customer` | `/customer` | Customer hub walkthrough (nav, concierge, innovate, orders) |
+
+Replay customer tour from **حسابي → جولة لوحة العميل**.
+
 ## Known limitations
 
 1. Run `npm run db:migrate` on Railway for server persistence (localStorage works without it).
