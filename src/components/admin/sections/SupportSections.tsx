@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { Brain, Zap, Activity } from "lucide-react";
 import { useLocale } from "@/lib/context/locale-context";
+import { cn } from "@/lib/utils";
 
 export function AIUsageSection({ data }: { data: AIAnalyticsData }) {
   const { t } = useLocale();
@@ -284,17 +285,15 @@ export function NationalAIPanelSection({ data }: { data: NationalPanelData }) {
 }
 
 const AI_NODES = [
-  { id: "customer", ar: "Customer AI", href: "/admin/ai-center" },
-  { id: "design", ar: "Design AI", href: "/admin/ai-center" },
-  { id: "measure", ar: "Measurement AI", href: "/admin/ai-center" },
-  { id: "match", ar: "Matching AI", href: "/admin/ai-center" },
-  { id: "order", ar: "Order AI", href: "/admin/orders" },
-  { id: "tailor", ar: "Tailor AI", href: "/admin/tailors" },
-  { id: "inventory", ar: "Inventory AI", href: "/admin/inventory" },
-  { id: "pricing", ar: "Pricing AI", href: "/admin/analytics" },
-  { id: "marketing", ar: "Marketing AI", href: "/admin/analytics" },
-  { id: "quality", ar: "Quality AI", href: "/admin/ai-center" },
-  { id: "national", ar: "National Intelligence", href: "/admin/national-intelligence" },
+  { id: "customer", ar: "المستشار", en: "Concierge", href: "/", color: "#0F7654" },
+  { id: "design", ar: "ابتكار 3D", en: "Innovate 3D", href: "/customer/innovation", color: "#C8A45D" },
+  { id: "measure", ar: "قياسات", en: "Measure", href: "/customer/measurements", color: "#1a4a6b" },
+  { id: "match", ar: "توأم أسلوب", en: "Style Twin", href: "/customer/ai-stylist", color: "#0F7654" },
+  { id: "tryon", ar: "تجربة", en: "Try-On", href: "/customer/ai", color: "#7a1f1f" },
+  { id: "tailor", ar: "خياطون", en: "Tailors", href: "/admin/tailors", color: "#071A33" },
+  { id: "inventory", ar: "مخزون", en: "Inventory", href: "/admin/inventory", color: "#1a4a6b" },
+  { id: "analytics", ar: "تحليلات", en: "Analytics", href: "/admin/analytics", color: "#0F7654" },
+  { id: "national", ar: "وطني", en: "National", href: "/admin/national-intelligence", color: "#C8A45D" },
 ];
 
 export function AICommandNetworkSection() {
@@ -302,37 +301,52 @@ export function AICommandNetworkSection() {
   const [active, setActive] = useState<string | null>(null);
 
   return (
-    <section className="rounded-3xl border bg-white shadow-card p-6 md:p-8 overflow-hidden">
-      <h2 className="text-2xl font-bold text-navy mb-2">AI Command Center</h2>
-      <p className="text-sm text-muted-foreground mb-8">{t("شبكة الذكاء الاصطناعي للمنصة", "Platform AI network")}</p>
-      <div className="relative min-h-[280px] flex items-center justify-center">
+    <section className="overflow-hidden rounded-[1.75rem] border border-navy/10 bg-white p-6 shadow-[0_18px_48px_-32px_rgba(7,26,51,0.4)] md:p-8">
+      <div className="mb-2 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-omani-gold">
+            AI Network
+          </p>
+          <h2 className="text-2xl font-bold text-navy">{t("شبكة الذكاء الاصطناعي", "AI capability network")}</h2>
+          <p className="mt-1 text-sm text-navy/45">
+            {t("اضغط أي وحدة للانتقال إلى سطحها الحقيقي في المنصة.", "Tap any module to open its real surface in the product.")}
+          </p>
+        </div>
+        <Link href="/admin/ai-center" className="text-xs font-semibold text-primary hover:underline">
+          {t("مركز القيادة الكامل", "Full command center")} →
+        </Link>
+      </div>
+      <div className="relative mt-6 flex min-h-[300px] items-center justify-center">
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="h-32 w-32 rounded-full bg-primary/10 border-2 border-primary/30 flex items-center justify-center animate-pulse-soft">
-            <Brain className="h-10 w-10 text-primary" />
+          <div className="h-28 w-28 rounded-full border-2 border-primary/25 bg-gradient-to-br from-primary/15 to-omani-gold/10 shadow-[0_0_40px_-10px_rgba(15,118,84,0.45)] flex items-center justify-center">
+            <Brain className="h-9 w-9 text-primary" />
           </div>
         </div>
-        <div className="relative w-full max-w-lg aspect-square">
+        <div className="relative aspect-square w-full max-w-lg">
           {AI_NODES.map((node, i) => {
             const angle = (i / AI_NODES.length) * 2 * Math.PI - Math.PI / 2;
-            const x = 50 + 42 * Math.cos(angle);
-            const y = 50 + 42 * Math.sin(angle);
+            const x = 50 + 40 * Math.cos(angle);
+            const y = 50 + 40 * Math.sin(angle);
+            const on = active === node.id;
             return (
               <Link
                 key={node.id}
                 href={node.href}
                 onMouseEnter={() => setActive(node.id)}
                 onMouseLeave={() => setActive(null)}
-                className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                className="absolute -translate-x-1/2 -translate-y-1/2 transform"
                 style={{ left: `${x}%`, top: `${y}%` }}
               >
                 <span
-                  className={`block text-[10px] font-medium px-2 py-1.5 rounded-full border transition-all whitespace-nowrap ${
-                    active === node.id
-                      ? "bg-primary text-white border-primary shadow-glow scale-110"
-                      : "bg-white text-navy border-border/60 hover:border-primary"
-                  }`}
+                  className={cn(
+                    "block whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[10px] font-semibold transition-all",
+                    on
+                      ? "scale-110 border-transparent text-white shadow-md"
+                      : "border-navy/10 bg-white text-navy hover:border-primary/40"
+                  )}
+                  style={on ? { backgroundColor: node.color } : undefined}
                 >
-                  {node.ar}
+                  {t(node.ar, node.en)}
                 </span>
               </Link>
             );
