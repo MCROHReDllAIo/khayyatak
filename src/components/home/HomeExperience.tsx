@@ -26,7 +26,7 @@ const INITIAL_FILTER: StoreFilter = {
 
 export function HomeExperience() {
   const { t } = useLocale();
-  const { tailors, cities, loading } = useMarketplaceData();
+  const { tailors, cities, loading, showcase } = useMarketplaceData();
   const [filter, setFilter] = useState<StoreFilter>(INITIAL_FILTER);
   const [resultsLabel, setResultsLabel] = useState<string | null>(null);
   const [aiOpen, setAiOpen] = useState(false);
@@ -99,10 +99,15 @@ export function HomeExperience() {
                   {t("أنت تتخيّل. نحن نساعدك على تفصيله.", "You imagine it. We help tailor it.")}
                 </p>
                 <p className="mt-2 text-sm text-[#9aa6b5] leading-relaxed max-w-md">
-                  {t(
-                    "تصفّح المتاجر الحقيقية، واستعن بمستشارك الذكي متى احتجت.",
-                    "Browse real stores, and open your AI concierge whenever you need it."
-                  )}
+                  {showcase
+                    ? t(
+                        "متاجر تجريبية للمظهر حتى ينضم الخياطون — جرّب البحث والفلاتر.",
+                        "Demo stores for appearance until real tailors join — try search and filters."
+                      )
+                    : t(
+                        "تصفّح المتاجر الحقيقية، واستعن بمستشارك الذكي متى احتجت.",
+                        "Browse real stores, and open your AI concierge whenever you need it."
+                      )}
                 </p>
               </div>
             </motion.div>
@@ -123,6 +128,7 @@ export function HomeExperience() {
                   onFilterChange={onFilterChange}
                   onSelectStore={onSelectStore}
                   resultsLabel={resultsLabel}
+                  showcase={showcase}
                 />
               </div>
             </motion.div>

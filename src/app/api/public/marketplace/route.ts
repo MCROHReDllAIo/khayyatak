@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 import { fetchCities, fetchTailorRailItems } from "@/lib/db/tailors";
+import {
+  SHOWCASE_CITIES,
+  SHOWCASE_STORES,
+  shouldUseShowcaseStores,
+} from "@/lib/showcase/demo-stores";
 import type { Tailor } from "@/types";
 
 export async function GET() {
@@ -27,11 +32,24 @@ export async function GET() {
       availability_status: t.availability_status,
     }));
 
-    return NextResponse.json({ tailors: mappedTailors, cities });
+    if (shouldUseShowcaseStores(mappedTailors.length)) {
+      return NextResponse.json({
+        tailors: SHOWCASE_STORES,
+        cities: SHOWCASE_CITIES,
+        showcase: true,
+        message_ar: "متاجر تجريبية للمظهر — ليست حجوزات حقيقية",
+        message_en: "Showcase stores for appearance — not real bookings",
+      });
+    }
+
+    return NextResponse.json({ tailors: mappedTailors, cities, showcase: false });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed", tailors: [], cities: [] },
-      { status: 500 }
-    );
+    // Still show showcase on failure so the home never looks empty during demos
+    return NextResponse.json({
+      error: error instanceof Error ? error.message : "Failed",
+      tailors: SHOWCASE_STORES,
+      cities: SHOWCASE_CITIES,
+      showcase: true,
+    });
   }
 }

@@ -1,16 +1,27 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { motion } from "framer-motion";
-import { GarmentPreview } from "@/components/designer/GarmentPreview";
-import { specToDesignConfig } from "@/lib/innovation/types";
 import type { InnovationDesignSpec } from "@/lib/innovation/types";
 import {
-  GARMENT_PARTS,
   garmentPartLabel,
   type GarmentPart,
 } from "@/lib/innovation/garment-parts";
 import { useLocale } from "@/lib/context/locale-context";
 import { cn } from "@/lib/utils";
+
+const Garment3DViewer = dynamic(
+  () =>
+    import("@/components/innovation/Garment3DViewer").then((m) => m.Garment3DViewer),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[380px] items-center justify-center rounded-2xl bg-[#eef2f6] text-sm text-navy/50">
+        جاري تحميل المجسم ثلاثي الأبعاد...
+      </div>
+    ),
+  }
+);
 
 type ViewAngle = "front" | "back" | "side";
 
@@ -20,7 +31,6 @@ interface InnovationDesignCanvasProps {
   onViewChange?: (angle: ViewAngle) => void;
   aiVisualizationUrl?: string;
   className?: string;
-  /** Waiting silhouette before first collaboration turn */
   waiting?: boolean;
   focusPart?: GarmentPart | null;
   onFocusPart?: (part: GarmentPart | null) => void;
@@ -37,38 +47,37 @@ export function InnovationDesignCanvas({
   onFocusPart,
 }: InnovationDesignCanvasProps) {
   const { t, locale } = useLocale();
-  const design = specToDesignConfig(spec);
   const angles: ViewAngle[] = ["front", "side", "back"];
 
   return (
     <div
       className={cn(
-        "rounded-[1.35rem] border border-navy/10 bg-white/80 shadow-[0_16px_48px_-28px_rgba(7,26,51,0.35)] overflow-hidden backdrop-blur-md",
+        "overflow-hidden rounded-[1.35rem] border border-navy/10 bg-white shadow-[0_16px_48px_-28px_rgba(7,26,51,0.35)]",
         className
       )}
     >
-      <div className="border-b border-navy/8 px-4 py-3 flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 border-b border-navy/8 px-4 py-3">
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wider text-primary">
-            {t("معاينة تفاعلية", "Interactive preview")}
+            {t("معاينة ثلاثية الأبعاد", "3D interactive preview")}
           </p>
           <p className="text-[10px] text-muted-foreground">
             {t(
-              "تصميم توضيحي — ليست نموذج 3D حقيقي",
-              "Design preview — not a real 3D model"
+              "مجسم WebGL حقيقي — اسحب للتدوير واضغط على أي جزء",
+              "Real WebGL model — drag to rotate, tap any part"
             )}
           </p>
         </div>
         {onViewChange && !waiting && (
-          <div className="flex gap-1 shrink-0">
+          <div className="flex shrink-0 gap-1">
             {angles.map((a) => (
               <button
                 key={a}
                 type="button"
                 onClick={() => onViewChange(a)}
                 className={cn(
-                  "text-[10px] px-2 py-1 rounded-full border transition-colors",
-                  viewAngle === a ? "bg-navy text-white border-navy" : "border-muted"
+                  "rounded-full border px-2 py-1 text-[10px] transition-colors",
+                  viewAngle === a ? "border-navy bg-navy text-white" : "border-muted"
                 )}
               >
                 {a === "front" ? "أمام" : a === "back" ? "خلف" : "جانب"}
@@ -78,111 +87,78 @@ export function InnovationDesignCanvas({
         )}
       </div>
 
-      <div className="relative bg-gradient-to-b from-[#f7f4ee] to-white p-6 min-h-[340px] flex flex-col items-center justify-center">
+      <div className="bg-gradient-to-b from-[#f0f3f7] to-white p-4">
         {waiting ? (
-          <div className="text-center space-y-4 max-w-xs">
-            <div className="mx-auto opacity-40 grayscale">
-              <GarmentPreview design={design} size="md" showConceptLabel={false} />
-            </div>
-            <p className="text-sm font-medium text-navy leading-relaxed">
+          <div className="space-y-3 text-center">
+            <Garment3DViewer spec={spec} viewAngle="front" dimmed />
+            <p className="text-sm font-medium text-navy">
               {t(
-                "هناك مجسم ينتظرك لاستكمال مشروعك.",
-                "A silhouette is waiting for you to continue your project."
-              )}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t(
-                "صف فكرتك أو أرفق صورة مرجعية — ثم حدد أي جزء تريد تعديله.",
-                "Describe your idea or attach a reference photo — then select any part to edit."
+                "المجسم جاهز — اكتب فكرتك أو أرفق صورة مرجعية للبدء.",
+                "The 3D model is ready — describe your idea or attach a reference photo."
               )}
             </p>
           </div>
         ) : (
           <>
-            <motion.div
-              key={viewAngle + spec.colorKey + spec.fabricKey}
-              initial={{ opacity: 0, rotateY: viewAngle === "side" ? -15 : 0 }}
-              animate={{
-                opacity: 1,
-                rotateY: viewAngle === "side" ? -20 : viewAngle === "back" ? 180 : 0,
-                scale: viewAngle === "back" ? 0.95 : 1,
-              }}
-              transition={{ duration: 0.4 }}
-              style={{ perspective: 800 }}
-              className="relative"
-            >
-              <GarmentPreview design={design} size="lg" />
+            <div className="mb-3 flex flex-wrap justify-center gap-2">
+              <span className="rounded-full bg-navy px-3 py-1 text-[11px] font-medium text-white">
+                {spec.category === "abaya"
+                  ? t("عباية", "Abaya")
+                  : t("دشداشة عمانية", "Omani Dishdasha")}
+              </span>
+              <span className="rounded-full bg-[#e8e2d6] px-3 py-1 text-[11px] font-medium text-navy">
+                {spec.fabric}
+              </span>
+            </div>
 
-              {/* Part hotspots — SVG overlay aligned to garment viewBox */}
-              {onFocusPart && viewAngle === "front" && (
-                <svg
-                  viewBox="0 0 200 320"
-                  className="absolute inset-0 w-full h-full pointer-events-none"
-                  aria-hidden={false}
-                >
-                  {GARMENT_PARTS.map((p) => {
-                    const active = focusPart === p.id;
-                    return (
-                      <g key={p.id} className="pointer-events-auto">
-                        <circle
-                          cx={p.cx}
-                          cy={p.cy}
-                          r={active ? 16 : 12}
-                          fill={active ? "rgba(200,164,93,0.35)" : "rgba(7,26,51,0.12)"}
-                          stroke={active ? "#c8a45d" : "rgba(7,26,51,0.35)"}
-                          strokeWidth={active ? 2 : 1}
-                          className="cursor-pointer transition-all"
-                          onClick={() => onFocusPart(active ? null : p.id)}
-                        >
-                          <title>{garmentPartLabel(p.id, locale === "ar" ? "ar" : "en")}</title>
-                        </circle>
-                        <text
-                          x={p.cx}
-                          y={p.cy + 28}
-                          textAnchor="middle"
-                          className="fill-navy/70 text-[9px] font-medium pointer-events-none"
-                        >
-                          {locale === "ar" ? p.ar : p.en}
-                        </text>
-                      </g>
-                    );
-                  })}
-                </svg>
-              )}
-            </motion.div>
+            <Garment3DViewer
+              spec={spec}
+              viewAngle={viewAngle}
+              focusPart={focusPart}
+              onFocusPart={onFocusPart}
+            />
 
             {focusPart && onFocusPart && (
-              <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-omani-gold/35 bg-omani-gold/10 px-3 py-1.5 text-xs text-navy">
-                <span>
-                  {t("تعديل الجزء:", "Editing:")}{" "}
-                  <strong>{garmentPartLabel(focusPart, locale === "ar" ? "ar" : "en")}</strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onFocusPart(null)}
-                  className="rounded-full bg-navy/10 px-2 py-0.5 text-[10px] hover:bg-navy/15"
-                >
-                  {t("إلغاء", "Clear")}
-                </button>
-              </div>
+              <motion.div
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-3 inline-flex w-full items-center justify-center gap-2"
+              >
+                <div className="inline-flex items-center gap-2 rounded-full border border-omani-gold/40 bg-omani-gold/15 px-3 py-1.5 text-xs text-navy">
+                  <span>
+                    {t("تعديل الجزء:", "Edit part:")}{" "}
+                    <strong>{garmentPartLabel(focusPart, locale === "ar" ? "ar" : "en")}</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onFocusPart(null)}
+                    className="rounded-full bg-navy/10 px-2 py-0.5 text-[10px] hover:bg-navy/15"
+                  >
+                    {t("إلغاء", "Cancel")}
+                  </button>
+                </div>
+              </motion.div>
             )}
           </>
         )}
       </div>
 
       {aiVisualizationUrl && (
-        <div className="border-t border-navy/8 p-4 space-y-2">
+        <div className="space-y-2 border-t border-navy/8 p-4">
           <p className="text-xs font-medium text-primary">
-            {t("معاينة مولدة بالذكاء الاصطناعي", "AI-generated visualization")}
+            {t("تصور فوتوغرافي بالذكاء الاصطناعي", "AI photographic concept")}
           </p>
-          <p className="text-[10px] text-amber-700">
-            AI Generated — {t("ليس منتج سوق ولا ضمان تصنيع", "not a marketplace product or manufacturing guarantee")}
+          <p className="text-[10px] text-muted-foreground">
+            {t(
+              "صورة مولّدة بالـ AI من مواصفات تصميمك — ليست صورة منتج جاهز للبيع",
+              "AI image from your design specs — not a finished marketplace product photo"
+            )}
           </p>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={aiVisualizationUrl}
             alt="AI visualization"
-            className="w-full rounded-xl object-cover max-h-48"
+            className="max-h-56 w-full rounded-xl object-cover"
           />
         </div>
       )}

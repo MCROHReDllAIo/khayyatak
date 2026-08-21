@@ -1,4 +1,4 @@
-/** Interactive garment regions for Innovation Studio (SVG preview — not real 3D). */
+/** Interactive garment regions for Innovation Studio (WebGL 3D part picks). */
 
 export type GarmentPart =
   | "sleeve"

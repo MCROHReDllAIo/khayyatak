@@ -35,9 +35,9 @@ type StudioStage = "waiting" | "evolve" | "measure" | "send";
 
 function welcomeForCategory(category: "abaya" | "dishdasha"): string {
   if (category === "dishdasha") {
-    return "مرحبًا في ابتكار. هناك مجسم دشداشة ينتظرك لاستكمال مشروعك.\n\nابدأ بتشكيل فكرتك — لون، ياقة، أكمام، تطريز — أو حدد جزءًا من المعاينة لتعديله.\n\nمثال: «أبغى دشداشة بيضاء كلاسيكية، كم عادي، تطريز بسيط على الصدر»";
+    return "مرحبًا في ابتكار. أمامك مجسم دشداشة ثلاثي الأبعاد حقيقي (WebGL) — اسحب للتدوير واضغط على أي جزء للتعديل.\n\nأمثلة واقعية يمكنك كتابتها كما هي:\n• «دشداشة بيضاء قطن صيفي، ياقة كلاسيكية، كم عادي، تطريز بسيط على الصدر»\n• «خلي اللون كريمي والكم أطول شوي»\n• «بدّل التطريز لذهبي رفيع على الكتف»";
   }
-  return "مرحبًا في ابتكار. هناك مجسم عباية ينتظرك لاستكمال مشروعك.\n\nابدأ بتشكيل فكرتك — لون، قصة، أكمام، تطريز — أو حدد جزءًا من المعاينة لتعديله.\n\nمثال: «أبغى عباية سوداء مفتوحة، واسعة، تطريز ذهبي بسيط»";
+  return "مرحبًا في ابتكار. أمامك مجسم عباية ثلاثي الأبعاد حقيقي (WebGL) — اسحب للتدوير واضغط على أي جزء للتعديل.\n\nأمثلة واقعية يمكنك كتابتها كما هي:\n• «عباية سوداء مفتوحة، قصة واسعة، أكمام واسعة، تطريز ذهبي بسيط»\n• «خلي اللون كحلي والقماش كريب»\n• «عدّل الكم يكون أضيق والنقشة على الصدر فقط»";
 }
 
 export function InnovationStudio({
@@ -293,8 +293,8 @@ export function InnovationStudio({
       {waiting && (
         <div className="rounded-xl border border-navy/10 bg-[#f7f4ee] px-4 py-3 text-sm text-navy/80">
           {t(
-            "صف لنا ما تتخيله، أو أرفق صورة، أو حدد جزءًا من المجسم لتعديله.",
-            "Describe what you imagine, attach a photo, or select a part of the silhouette to edit."
+            "صف لنا ما تتخيله، أو أرفق صورة، أو اضغط جزءًا من المجسم ثلاثي الأبعاد لتعديله.",
+            "Describe what you imagine, attach a photo, or tap a part of the 3D model to edit."
           )}
           <button
             type="button"
@@ -341,8 +341,8 @@ export function InnovationStudio({
           />
           <p className="text-[10px] text-center text-muted-foreground mt-2">
             {t(
-              "معاينة تصميم تفاعلية — ليست نموذج 3D حقيقي.",
-              "Interactive design preview — not a real 3D model."
+              "مجسم 3D تفاعلي (WebGL) — اللون والقماش من مواصفاتك. «معاينة AI» تولّد صورة فوتوغرافية منفصلة عند تفعيل المفتاح.",
+              "Interactive WebGL 3D — color/fabric follow your specs. “AI preview” generates a separate photo when the API key is set."
             )}
           </p>
         </div>
@@ -402,12 +402,17 @@ export function InnovationStudio({
 
             <div className="space-y-2">
               <p className="text-xs font-medium">{t("اختر المتجر", "Choose a store")}</p>
-              {tailors.length === 0 ? (
+              {tailors.filter((x) => !x.is_showcase).length === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  {t("لا متاجر متاحة حاليًا.", "No stores available yet.")}
+                  {t(
+                    "لا متاجر حقيقية متاحة للإرسال بعد. المتاجر التجريبية على الصفحة الرئيسية للمظهر فقط.",
+                    "No live stores to submit to yet. Home showcase stores are for appearance only."
+                  )}
                 </p>
               ) : (
-                tailors.map((tailor) => (
+                tailors
+                  .filter((x) => !x.is_showcase)
+                  .map((tailor) => (
                   <button
                     key={tailor.id}
                     type="button"

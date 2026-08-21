@@ -58,6 +58,8 @@ export interface Tailor {
   gallery: string[];
   availability_status?: TailorAvailabilityStatus;
   services?: TailorService[];
+  /** True when this row is a labeled showcase/demo store for appearance */
+  is_showcase?: boolean;
 }
 
 export interface TailorRailItem {

@@ -29,7 +29,19 @@ function getApiKey(): string | null {
 
 function buildPrompt(spec: InnovationDesignSpec): string {
   const garment = spec.category === "abaya" ? "Omani abaya" : "Omani dishdasha thobe";
-  return `Professional fashion product photo, ${garment}, color ${spec.color}, ${spec.fabric} fabric, ${spec.opening ?? ""} opening, ${spec.sleeves ?? ""} sleeves, ${spec.embroidery ?? "no"} embroidery, ${spec.occasion ?? "formal"} style, studio lighting, clean background, high-end fashion photography, no person visible, garment only`;
+  return [
+    `Photorealistic fashion product studio photo of a ${garment} on an invisible mannequin`,
+    `exact color ${spec.color} (${spec.colorHex || spec.colorKey})`,
+    `${spec.fabric} fabric with realistic weave and soft folds`,
+    spec.opening ? `${spec.opening} opening` : null,
+    spec.sleeves ? `${spec.sleeves} sleeves` : null,
+    spec.embroidery && spec.embroidery !== "none" ? `${spec.embroidery} embroidery` : "clean minimal chest",
+    spec.occasion ? `${spec.occasion} occasion styling` : "everyday elegant",
+    "soft natural studio lighting, shallow depth of field, high-end editorial fashion photography",
+    "no person face, garment only, accurate proportions, Oman Gulf traditional wear",
+  ]
+    .filter(Boolean)
+    .join(", ");
 }
 
 export async function generateDesignVisualization(
@@ -129,9 +141,10 @@ export function getVisualizationConfig() {
 
 export function get3DPreviewStatus() {
   return {
-    available: false,
-    status: "NOT_IMPLEMENTED",
-    reason: "True 3D garment engine (Three.js/GLTF) not configured. Using 2D structured preview only.",
-    required: "three, @react-three/fiber, GLTF garment models",
+    available: true,
+    status: "WEBGL_INTERACTIVE",
+    reason:
+      "Interactive WebGL garment (Three.js + React Three Fiber). Procedural abaya/dishdasha mesh with lighting, orbit, and part picks — not a scanned photogrammetry model.",
+    integration: "src/components/innovation/Garment3DViewer.tsx",
   };
 }

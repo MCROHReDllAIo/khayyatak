@@ -20,6 +20,7 @@ interface HomeMarketplacePanelProps {
   onFilterChange: (patch: Partial<StoreFilter>) => void;
   onSelectStore: (tailor: Tailor) => void;
   resultsLabel?: string | null;
+  showcase?: boolean;
 }
 
 export function HomeMarketplacePanel({
@@ -30,6 +31,7 @@ export function HomeMarketplacePanel({
   onFilterChange,
   onSelectStore,
   resultsLabel,
+  showcase,
 }: HomeMarketplacePanelProps) {
   const { t, locale } = useLocale();
   const ranked = filterAndRankStores(tailors, cities, filter);
@@ -41,13 +43,20 @@ export function HomeMarketplacePanel({
       <header className="shrink-0 space-y-4 pb-5 border-b border-navy/8">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-omani-gold">
-            {t("سوق حقيقي", "Real marketplace")}
+            {showcase
+              ? t("عرض تجريبي للمظهر", "Showcase for appearance")
+              : t("سوق حقيقي", "Real marketplace")}
           </p>
           <h2 className="mt-1 text-xl sm:text-2xl md:text-3xl font-bold text-navy tracking-tight">
             {t("المتاجر", "Stores")}
           </h2>
           <p className="mt-1.5 text-sm text-navy/45 max-w-lg">
-            {t("اكتشف خياطين ومتاجر موثوقة من حولك.", "Discover trusted tailors and stores near you.")}
+            {showcase
+              ? t(
+                  "متاجر تجريبية كثيرة لتتخيل شكل السوق — ليست حجوزات حقيقية.",
+                  "Many demo stores so you can see how the market looks — not real bookings."
+                )
+              : t("اكتشف خياطين ومتاجر موثوقة من حولك.", "Discover trusted tailors and stores near you.")}
           </p>
         </div>
 
@@ -127,13 +136,10 @@ export function HomeMarketplacePanel({
             className="flex h-full min-h-[320px] flex-col items-center justify-center rounded-[1.5rem] border border-dashed border-[#ddd5c8] bg-white px-6 text-center"
           >
             <p className="text-base font-semibold text-navy">
-              {t("ستظهر المتاجر هنا عند انضمامها إلى خياطك.", "Stores will appear here as they join Khayyatak.")}
+              {t("لا نتائج لهذا البحث", "No results for this search")}
             </p>
             <p className="mt-2 text-sm text-navy/45 max-w-md">
-              {t(
-                "لا نعرض متاجر وهمية. كن أول من يكتشف المنصة.",
-                "We never invent stores. Be among the first to explore."
-              )}
+              {t("جرّب فئة أخرى أو امسح البحث.", "Try another category or clear the search.")}
             </p>
           </div>
         ) : (

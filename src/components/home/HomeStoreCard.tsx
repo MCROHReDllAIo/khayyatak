@@ -24,15 +24,20 @@ export function HomeStoreCard({
   onSelect,
 }: HomeStoreCardProps) {
   const { t, locale } = useLocale();
-  const cover =
-    resolveProductImageUrl(tailor.cover_image) ||
-    resolveProductImageUrl(tailor.gallery?.[0]);
+  const cover = tailor.is_showcase
+    ? tailor.cover_image || null
+    : resolveProductImageUrl(tailor.cover_image) ||
+      resolveProductImageUrl(tailor.gallery?.[0]);
   const specialty =
     (locale === "ar" ? tailor.specializations_ar[0] : tailor.specializations[0]) ||
     t("خياطة عمانية", "Omani tailoring");
   const blurb =
     (locale === "ar" ? tailor.description_ar : tailor.description_en)?.trim() ||
     t("تفصيل فاخر بأسلوب عماني", "Premium Omani craftsmanship");
+  const visitHref = tailor.is_showcase ? "/marketplace" : `/tailors/${tailor.id}`;
+  const visitLabel = tailor.is_showcase
+    ? t("عرض تجريبي", "Demo only")
+    : t("زيارة المتجر", "Visit store");
 
   return (
     <motion.article
@@ -65,13 +70,17 @@ export function HomeStoreCard({
             </div>
           )}
           <div className="absolute inset-0 bg-gradient-to-t from-navy/75 via-navy/10 to-transparent" />
-          {tailor.verified && (
+          {tailor.is_showcase ? (
+            <span className="absolute top-3 start-3 inline-flex items-center gap-1 rounded-full bg-omani-gold px-2.5 py-1 text-[11px] font-semibold text-navy">
+              {t("عرض تجريبي", "Showcase")}
+            </span>
+          ) : tailor.verified ? (
             <span className="absolute top-3 start-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-semibold text-primary backdrop-blur-sm">
               <BadgeCheck className="h-3.5 w-3.5" />
               {t("موثق", "Verified")}
             </span>
-          )}
-          {highlighted && (
+          ) : null}
+          {highlighted && !tailor.is_showcase && (
             <span className="absolute top-3 end-3 rounded-full bg-omani-gold/95 px-2.5 py-1 text-[10px] font-bold text-navy shadow-sm">
               {t("مناسب لطلبك", "Matches your ask")}
             </span>
@@ -123,10 +132,18 @@ export function HomeStoreCard({
 
       <div className="px-4 pb-4">
         <Link
-          href={`/tailors/${tailor.id}`}
-          className="flex h-10 w-full items-center justify-center rounded-xl bg-navy/95 text-sm font-medium text-white transition-colors hover:bg-navy"
+          href={visitHref}
+          className={cn(
+            "flex h-10 w-full items-center justify-center rounded-xl text-sm font-medium transition-colors",
+            tailor.is_showcase
+              ? "bg-omani-gold/90 text-navy hover:bg-omani-gold"
+              : "bg-navy/95 text-white hover:bg-navy"
+          )}
+          onClick={(e) => {
+            if (tailor.is_showcase) e.preventDefault();
+          }}
         >
-          {t("زيارة المتجر", "Visit store")}
+          {visitLabel}
         </Link>
       </div>
     </motion.article>

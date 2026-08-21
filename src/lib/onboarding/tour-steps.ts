@@ -28,8 +28,8 @@ export const MAIN_TOUR_STEPS: TourStep[] = [
     bodyAr: "كل بطاقة تمثل متجرًا حقيقيًا. اضغط «زيارة المتجر» لترى المنتجات والأقمشة والأعمال.",
     bodyEn: "Each card is a real store. Tap Visit store to see products, fabrics, and portfolio.",
     placement: "auto",
-    caveatAr: "إن لم تنضم متاجر بعد، ستظهر حالة فارغة صادقة — ولا نعرض متاجر وهمية.",
-    caveatEn: "If no stores have joined yet, you'll see an honest empty state — we never invent stores.",
+    caveatAr: "إن لم تنضم متاجر بعد، تظهر متاجر تجريبية للمظهر فقط — ليست حجوزات حقيقية.",
+    caveatEn: "If no live stores yet, labeled demo stores appear for appearance only — not real bookings.",
   },
   {
     id: "ai",
@@ -147,8 +147,8 @@ export const CUSTOMER_TOUR_STEPS: TourStep[] = [
     bodyAr: "قائمة الخياطين هنا من المتاجر المسجّلة فعليًا. اختر من يناسب ذوقك ومدينتك.",
     bodyEn: "This tailor list comes from real registered stores. Pick who fits your style and city.",
     placement: "auto",
-    caveatAr: "إن كانت القائمة فارغة، فهذا يعني أنه لا متاجر بعد — لا نعرض خياطين وهميين.",
-    caveatEn: "If the list is empty, no stores have joined yet — we never invent tailors.",
+    caveatAr: "إن كانت القائمة فارغة، تظهر متاجر تجريبية للمظهر فقط.",
+    caveatEn: "If the live list is empty, labeled demo stores appear for appearance.",
   },
   {
     id: "customer-innovate",
