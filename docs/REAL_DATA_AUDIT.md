@@ -61,7 +61,7 @@ npm run purge:stock-images
 
 | Area | File | Issue |
 |------|------|-------|
-| Measurement “camera” | `measurement.ts` | Random estimates if presented as AI scan |
+| Measurement camera | `measurement.ts` | Height-calibrated anthropometrics (+ optional vision). Not ARKit. Labeled calibrated estimate. |
 | Tailor forecasting | `forecasting.ts` | Hardcoded trend % |
 | Image understanding fallback | `image-understanding.ts` | Demo analyses when AI off |
 

@@ -1,5 +1,6 @@
 export { generateStyleRecommendation, generateDesignFromQuestions } from "./stylist";
-export { estimateMeasurements, runMeasurementScan, SCAN_STEPS } from "./measurement";
+export { estimateMeasurements, estimateFromCalibration, runMeasurementScan, SCAN_STEPS } from "./measurement";
+export type { EstimateInput, MeasurementScanStep, BodySex, BodyBuild } from "./measurement";
 export { matchTailors, getBestMatch, filterTailors } from "./matching";
 export { recommendPrice } from "./pricing";
 export { forecastDemand, generateBusinessInsights } from "./forecasting";
